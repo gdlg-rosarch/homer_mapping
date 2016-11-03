@@ -1,44 +1,13 @@
-## homer_mapping (kinetic) - 0.1.1-0
+# nav_libs
 
-The packages in the `homer_mapping` repository were released into the `kinetic` distro by running `/usr/bin/bloom-release --rosdistro kinetic --track kinetic homer_mapping` on `Thu, 03 Nov 2016 21:29:57 -0000`
+## Known Issues / Todo's 
 
-These packages were released:
-- `homer_map_manager`
-- `homer_mapnav_msgs`
-- `homer_mapping`
-- `homer_nav_libs`
-- `homer_navigation`
+Im Package nav_libs ist eine Kopie der Robbie-Bibliothek Math, umbenannt in MappingMath, die nur von homer_mapping benutzt werden soll, solange es keine vernünftige Alternative für die Pose gibt.
 
-Version of package(s) in repository `homer_mapping`:
+## Introduction 
 
-- upstream repository: git@gitlab.uni-koblenz.de:robbie/homer_mapping.git
-- release repository: unknown
-- rosdistro version: `null`
-- old version: `null`
-- new version: `0.1.1-0`
+Das Package nav_libs enthält einige Bibliotheken, die vom Package homer_mapping und nav_libs verwendet werden. Außerdem enthält es im Ordner tools die Header-Datei tools.h, die Funktionen zum Transformieren in verschiedene Koordinatenframes enthält. All diese Funktionen befinden sich im namespace "map_tools".
 
-Versions of tools used:
-
-- bloom version: `0.5.23`
-- catkin_pkg version: `0.2.10`
-- rosdep version: `0.11.5`
-- rosdistro version: `0.5.0`
-- vcstools version: `0.1.39`
-
-
-# mapping
-
-See:
-
-* [mapping]
-* [navigation]
-* [map_manager]
-* [map_msgs]
-* [nav_libs]
-
-[mapping]: homer_mapping/README.md
-[navigation]: homer_navigation/README.md
-[map_manager]: map_manager/README.md
-[map_msgs]: map_msgs/README.md
-[nav_libs]: nav_libs/README.md
-
+* Die Bibliothek `Explorer` wird von homer_mapping und homer_navigation verwendet und enthält die Pfadplanungsalgorithmen A-Stern sowie die dafür benötigte Datenstruktur der GridMap.
+* Die Bibliothek `SpeedControl` wird von homer_navigation verwendet und  ist dafür zuständig abhängig von den aktuellen Laserdaten die höchstzulässige Geschwindigkeit zu berechnen.
+* Die Bibliothek `MappingMath` wird von homer_mapping verwendet und enthält die Datenstruktur Pose, in der die aktuelle Roboterposition innerhalb der Node gespeichert wird.
