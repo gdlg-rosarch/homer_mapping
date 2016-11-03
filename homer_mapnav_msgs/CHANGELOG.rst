@@ -4,6 +4,8 @@ Changelog for package homer_mapnav_msgs
 
 Forthcoming
 -----------
+* updated changelog
+* Contributors: Niklas Yann Wettengel
 
 0.1.3 (2016-11-03)
 ------------------
