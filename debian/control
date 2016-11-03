@@ -1,0 +1,12 @@
+Source: ros-kinetic-homer-mapping
+Section: misc
+Priority: extra
+Maintainer: Viktor Seib <vseib@uni-koblenz.de>
+Build-Depends: debhelper (>= 9.0.0), libeigen3-dev, libqt5core5a, libqt5gui5, libqt5widgets5, ros-kinetic-catkin, ros-kinetic-cmake-modules, ros-kinetic-homer-mapnav-msgs, ros-kinetic-homer-nav-libs, ros-kinetic-nav-msgs, ros-kinetic-roscpp, ros-kinetic-roslib, ros-kinetic-sensor-msgs, ros-kinetic-tf
+Homepage: 
+Standards-Version: 3.9.2
+
+Package: ros-kinetic-homer-mapping
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, libeigen3-dev, libqt5core5a, libqt5gui5, libqt5widgets5, ros-kinetic-homer-mapnav-msgs, ros-kinetic-homer-nav-libs, ros-kinetic-nav-msgs, ros-kinetic-roscpp, ros-kinetic-roslib, ros-kinetic-sensor-msgs, ros-kinetic-std-msgs, ros-kinetic-tf
+Description: homer_mapping
