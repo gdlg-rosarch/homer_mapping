@@ -15,7 +15,7 @@ catkin_package(
 	INCLUDE_DIRS include
 	LIBRARIES homerExplorer homerMappingMath
 	CATKIN_DEPENDS  roscpp geometry_msgs tf
-	DEPENDS Eigen3)
+)
 
 
 include_directories(
