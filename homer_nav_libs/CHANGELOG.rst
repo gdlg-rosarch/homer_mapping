@@ -2,6 +2,9 @@
 Changelog for package homer_nav_libs
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+
 0.1.4 (2016-11-03)
 ------------------
 * updated changelog
