@@ -1,0 +1,9 @@
+ros-kinetic-homer-nav-libs (0.1.1-0xenial) xenial; urgency=high
+
+  * fixes
+  * initial commit
+  * Contributors: Niklas Yann Wettengel
+
+ -- Viktor Seib <vseib@uni-koblenz.de>  Wed, 02 Nov 2016 23:00:00 -0000
+
+
