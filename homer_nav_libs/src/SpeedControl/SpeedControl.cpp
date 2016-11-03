@@ -38,10 +38,10 @@ namespace {
   inline Eigen::AlignedBox2f loadRect(const string& path)
   {
     pair<float, float> pX, pY;
-    loadConfigValue(path + "/x_min", pX.first);
-    loadConfigValue(path + "/x_max", pX.second);
-    loadConfigValue(path + "/y_min", pY.first);
-    loadConfigValue(path + "/y_max", pY.second);
+	ros::param::get(path + "/x_min", pX.first);
+	ros::param::get(path + "/x_max", pX.second);
+	ros::param::get(path + "/y_min", pY.first);
+	ros::param::get(path + "/y_max", pY.second);
 
     Eigen::Vector2f first(pX.first, pY.first), second(pX.second, pY.second);
     return Eigen::AlignedBox2f(first, second);
@@ -52,10 +52,10 @@ void SpeedControl::loadDimensions()
 {
   InnerDangerZone = loadRect("/homer_navigation/speed_control/inner_danger_zone");
   InnerDangerZoneFactor;
-  loadConfigValue("/homer_navigation/speed_control/inner_danger_zone/speed_factor", InnerDangerZoneFactor);
+  ros::param::get("/homer_navigation/speed_control/inner_danger_zone/speed_factor", InnerDangerZoneFactor);
   OuterDangerZone = loadRect("/homer_navigation/speed_control/inner_danger_zone");
   OuterDangerZoneFactor;
-  loadConfigValue("/homer_navigation/speed_control/outer_danger_zone/speed_factor", OuterDangerZoneFactor);
+  ros::param::get("/homer_navigation/speed_control/outer_danger_zone/speed_factor", OuterDangerZoneFactor);
   if(!OuterDangerZone.contains(InnerDangerZone))
     ROS_WARN_STREAM("InnerDangerZone is not contained in OuterDangerZone");
 }
