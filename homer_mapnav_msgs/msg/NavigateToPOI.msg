@@ -1,0 +1,3 @@
+string poi_name
+float32 distance_to_target
+bool skip_final_turn
