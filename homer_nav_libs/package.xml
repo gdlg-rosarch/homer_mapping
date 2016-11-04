@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<package>
+  <name>homer_nav_libs</name>
+  <version>0.1.5</version>
+  <description>The nav_libs package</description>
+
+  <maintainer email="vseib@uni-koblenz.de">Viktor Seib</maintainer>
+  <author email="mknauf@uni-koblenz.de">Malte Knauf</author>
+  <license>GPLv3</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <build_depend>geometry_msgs</build_depend>
+  <build_depend>roscpp</build_depend>
+  <build_depend>tf</build_depend>
+  <build_depend>cmake_modules</build_depend>
+  <build_depend>eigen</build_depend>
+
+  <run_depend>roscpp</run_depend>
+  <run_depend>geometry_msgs</run_depend>
+  <run_depend>tf</run_depend>
+  <run_depend>eigen</run_depend>
+
+</package>
