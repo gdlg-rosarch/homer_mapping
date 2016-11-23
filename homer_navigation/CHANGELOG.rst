@@ -2,6 +2,11 @@
 Changelog for package homer_navigation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+0.1.9 (2016-11-23)
+------------------
+* fix bug when first target is unreachable
+* Contributors: Malte Roosen
+
 0.1.8 (2016-11-21)
 ------------------
 * Catch error case of obstacleMapDistance=0
