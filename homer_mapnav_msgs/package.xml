@@ -1,6 +1,6 @@
 <package>
   <name>homer_mapnav_msgs</name>
-  <version>0.1.8</version>
+  <version>0.1.9</version>
   <description> homer_mapnav_msgs contains the messages used for mapping and navigation
   </description>
   <maintainer email="vseib@uni-koblenz.de">Viktor Seib</maintainer>
