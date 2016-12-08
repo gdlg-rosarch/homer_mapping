@@ -173,9 +173,9 @@ Eigen::Vector2i Explorer::getNearestAccessibleTarget(Eigen::Vector2i target )
     ROS_INFO_STREAM("target cell in drivingdistancetransform: " << m_DrivingDistanceTransform->getValue ( target.x(), target.y() ));
     ROS_INFO_STREAM("target " << target << " is not approachable. Correcting target...");
     int minSqrDist=INT_MAX;
-    for ( int x = 0; x < m_ObstacleTransform->height(); x++ )
+    for ( int x = 0; x < m_ObstacleTransform->width(); x++ )
     {
-      for ( int y = 0; y < m_ObstacleTransform->width(); y++ )
+      for ( int y = 0; y < m_ObstacleTransform->height(); y++ )
       {
         bool isSafe = m_ObstacleTransform->getValue ( x, y ) > m_FrontierSafenessFactor * m_MinAllowedObstacleDistance;
         if ( isApproachable ( x,y ) && isWalkable( x , y) && isSafe )
@@ -219,9 +219,9 @@ Eigen::Vector2i Explorer::getNearestWalkablePoint( Eigen::Vector2i target )
   if ( !isWalkable( target.x(), target.y() ) )
   {
     int minSqrDist=INT_MAX;
-    for ( int x = 0; x < m_ObstacleTransform->height(); x++ )
+    for ( int x = 0; x < m_ObstacleTransform->width(); x++ )
     {
-      for ( int y = 0; y < m_ObstacleTransform->width(); y++ )
+      for ( int y = 0; y < m_ObstacleTransform->height(); y++ )
       {
         if ( isWalkable ( x,y ) )
         {
