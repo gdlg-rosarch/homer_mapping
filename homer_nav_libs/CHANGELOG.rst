@@ -2,8 +2,8 @@
 Changelog for package homer_nav_libs
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.1.10 (2016-12-08)
+-------------------
 * added support for not quadratic maps
 * Contributors: Lisa
 
