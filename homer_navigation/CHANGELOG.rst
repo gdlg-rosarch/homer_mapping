@@ -2,6 +2,16 @@
 Changelog for package homer_navigation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+0.1.11 (2017-01-19)
+-------------------
+* no debug
+* cool changelogs
+* navigation with dynamic maps
+* Contributors: Lisa
+
+* navigation with dynamic maps
+* Contributors: Lisa
+
 0.1.10 (2016-12-08)
 -------------------
 * removed not used code
