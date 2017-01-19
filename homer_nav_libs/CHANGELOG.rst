@@ -4,6 +4,8 @@ Changelog for package homer_nav_libs
 
 Forthcoming
 -----------
+* cool changelogs
+* Contributors: Lisa
 
 0.1.10 (2016-12-08)
 -------------------
