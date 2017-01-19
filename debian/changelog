@@ -1,0 +1,64 @@
+ros-kinetic-homer-map-manager (0.1.10-1xenial) xenial; urgency=high
+
+
+
+ -- Viktor Seib <vseib@uni-koblenz.de>  Wed, 07 Dec 2016 23:00:00 -0000
+
+ros-kinetic-homer-map-manager (0.1.9-1xenial) xenial; urgency=high
+
+
+
+ -- Viktor Seib <vseib@uni-koblenz.de>  Tue, 22 Nov 2016 23:00:00 -0000
+
+ros-kinetic-homer-map-manager (0.1.8-1xenial) xenial; urgency=high
+
+
+
+ -- Viktor Seib <vseib@uni-koblenz.de>  Sun, 20 Nov 2016 23:00:00 -0000
+
+ros-kinetic-homer-map-manager (0.1.7-1xenial) xenial; urgency=high
+
+
+
+ -- Viktor Seib <vseib@uni-koblenz.de>  Wed, 16 Nov 2016 23:00:00 -0000
+
+ros-kinetic-homer-map-manager (0.1.6-1xenial) xenial; urgency=high
+
+
+
+ -- Viktor Seib <vseib@uni-koblenz.de>  Thu, 03 Nov 2016 23:00:00 -0000
+
+ros-kinetic-homer-map-manager (0.1.5-1xenial) xenial; urgency=high
+
+
+
+ -- Viktor Seib <vseib@uni-koblenz.de>  Thu, 03 Nov 2016 23:00:00 -0000
+
+ros-kinetic-homer-map-manager (0.1.4-1xenial) xenial; urgency=high
+
+  * updated changelog
+  * Contributors: Niklas Yann Wettengel
+
+ -- Viktor Seib <vseib@uni-koblenz.de>  Wed, 02 Nov 2016 23:00:00 -0000
+
+ros-kinetic-homer-map-manager (0.1.3-1xenial) xenial; urgency=high
+
+
+
+ -- Viktor Seib <vseib@uni-koblenz.de>  Wed, 02 Nov 2016 23:00:00 -0000
+
+ros-kinetic-homer-map-manager (0.1.2-1xenial) xenial; urgency=high
+
+
+
+ -- Viktor Seib <vseib@uni-koblenz.de>  Wed, 02 Nov 2016 23:00:00 -0000
+
+ros-kinetic-homer-map-manager (0.1.1-1xenial) xenial; urgency=high
+
+  * fixes
+  * initial commit
+  * Contributors: Niklas Yann Wettengel
+
+ -- Viktor Seib <vseib@uni-koblenz.de>  Wed, 02 Nov 2016 23:00:00 -0000
+
+
