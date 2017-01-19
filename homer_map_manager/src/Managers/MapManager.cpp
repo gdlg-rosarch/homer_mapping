@@ -23,10 +23,6 @@ MapManager::MapManager(ros::NodeHandle* nh)
     {
     	m_MapVisibility[m_laser_layers[i]] = true;
     }
-
-    m_Height 			= -1;
-    m_Width 			= -1;
-    m_Resolution 		= -1;
     
 	try
 	{
@@ -57,13 +53,8 @@ MapManager::~MapManager()
 void MapManager::updateMapLayer(int type, nav_msgs::OccupancyGrid::ConstPtr layer)
 {
     m_MapLayers[type] 	= layer;
-    //if slam map update map sizes
     if(type == homer_mapnav_msgs::MapLayers::SLAM_LAYER)
     {
-        m_Height 		= layer->info.height;
-        m_Width 		= layer->info.width;
-        m_Resolution 	= layer->info.resolution;
-        m_Origin 		= layer->info.origin;
  	    sendMergedMap();
     }
 }
