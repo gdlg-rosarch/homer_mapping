@@ -2,6 +2,11 @@
 Changelog for package homer_mapnav_msgs
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+0.1.11 (2017-01-19)
+-------------------
+* cool changelogs
+* Contributors: Lisa
+
 0.1.10 (2016-12-08)
 -------------------
 
