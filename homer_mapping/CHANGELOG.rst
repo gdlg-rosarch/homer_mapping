@@ -2,6 +2,23 @@
 Changelog for package homer_mapping
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+0.1.11 (2017-01-19)
+-------------------
+* cool changelogs
+* navigation with dynamic maps
+* dynamic masking map
+* no more squared maps
+* dynamic map size and wall kernel
+* dynamic map size
+* Contributors: Lisa
+
+* navigation with dynamic maps
+* dynamic masking map
+* no more squared maps
+* dynamic map size and wall kernel
+* dynamic map size
+* Contributors: Lisa
+
 0.1.10 (2016-12-08)
 -------------------
 
