@@ -1,268 +1,244 @@
-## homer_mapping (kinetic) - 0.1.9-0
+# map_messages
 
-The packages in the `homer_mapping` repository were released into the `kinetic` distro by running `/usr/bin/bloom-release --rosdistro kinetic --track kinetic homer_mapping` on `Wed, 23 Nov 2016 18:50:56 -0000`
 
-These packages were released:
-- `homer_map_manager`
-- `homer_mapnav_msgs`
-- `homer_mapping`
-- `homer_nav_libs`
-- `homer_navigation`
+## Introduction 
 
-Version of package(s) in repository `homer_mapping`:
+Dieses Package enthält alle benutzerdefinierten Messages, die neben den in ROS enthaltenen Messages für das Mapping und die Navigation verwendet werden. Das Package enthält keine Node oder Librabries.
 
-- upstream repository: git@gitlab.uni-koblenz.de:robbie/homer_mapping.git
-- release repository: git@gitlab.uni-koblenz.de:robbie/homer_mapping.git
-- rosdistro version: `0.1.8-0`
-- old version: `0.1.8-0`
-- new version: `0.1.9-0`
+## Messages 
 
-Versions of tools used:
 
-- bloom version: `0.5.23`
-- catkin_pkg version: `0.2.10`
-- rosdep version: `0.11.5`
-- rosdistro version: `0.5.0`
-- vcstools version: `0.1.39`
+### PointOfInterest
 
 
-## homer_mapping (kinetic) - 0.1.8-0
+Die PointOfInterest-Message enthält alle Informationen, um einen POI zu erstellen, zu verschicken und zu speichern.
 
-The packages in the `homer_mapping` repository were released into the `kinetic` distro by running `/usr/bin/bloom-release --rosdistro kinetic --track kinetic homer_mapping` on `Mon, 21 Nov 2016 17:15:35 -0000`
+~~~~~~ {.cpp}
+PointOfInterest.msg
 
-These packages were released:
-- `homer_map_manager`
-- `homer_mapnav_msgs`
-- `homer_mapping`
-- `homer_nav_libs`
-- `homer_navigation`
 
-Version of package(s) in repository `homer_mapping`:
 
-- upstream repository: git@gitlab.uni-koblenz.de:robbie/homer_mapping.git
-- release repository: git@gitlab.uni-koblenz.de:robbie/homer_mapping.git
-- rosdistro version: `0.1.7-0`
-- old version: `0.1.7-0`
-- new version: `0.1.8-0`
+int32 DEFAULT=100
+int32 VICTIM=200
+int32 OBJECT=300
+int32 GRIPPABLE_OBJECT=400
+int32 PERSON=600
+int32 ROOMBA=700
+int32 HAZARD_MATERIAL=800
+int32 START_POSITION=900
+int32 START_ORIENTATION=1000
 
-Versions of tools used:
+int32 type
+string name
+string remarks
 
-- bloom version: `0.5.23`
-- catkin_pkg version: `0.2.10`
-- rosdep version: `0.11.5`
-- rosdistro version: `0.5.0`
-- vcstools version: `0.1.39`
+geometry_msgs/Pose pose
+~~~~~~
 
+* `type` bezeichnet den Typ des POIs. Es kann eine der in dieser Message vorhandenen Konstanten verwendet werden. 
+* `name` bezeichnet den Namen des POIs. Dieser Name muss einzigartig sein, da die POIs über ihren Namen unterschieden werden.
+* `remarks`: Hier können Anmerkungen reingeschrieben werden. Diese werden in der GUI angezeigt.
+* `pose` bezeichnet die Position und Orientierung des POIS im /map-Frame.
 
-## homer_mapping (kinetic) - 0.1.7-0
 
-The packages in the `homer_mapping` repository were released into the `kinetic` distro by running `/usr/bin/bloom-release --rosdistro kinetic --track kinetic homer_mapping` on `Thu, 17 Nov 2016 20:35:23 -0000`
+### ModifyPOI
 
-These packages were released:
-- `homer_map_manager`
-- `homer_mapnav_msgs`
-- `homer_mapping`
-- `homer_nav_libs`
-- `homer_navigation`
 
-Version of package(s) in repository `homer_mapping`:
+ModifyPOI ist dafür zuständig, einen vorhandenen POI zu verändern.
 
-- upstream repository: git@gitlab.uni-koblenz.de:robbie/homer_mapping.git
-- release repository: git@gitlab.uni-koblenz.de:robbie/homer_mapping.git
-- rosdistro version: `0.1.6-1`
-- old version: `0.1.6-1`
-- new version: `0.1.7-0`
+~~~~~~ {.cpp}
+ModifyPOI.msg
 
-Versions of tools used:
+PointOfInterest poi
+string old_name
+~~~~~~
 
-- bloom version: `0.5.23`
-- catkin_pkg version: `0.2.10`
-- rosdep version: `0.11.5`
-- rosdistro version: `0.5.0`
-- vcstools version: `0.1.39`
+* `poi` beinhaltet den POI, durch den der alte ersetzt werden soll.
+* `old_name` bezeichnet den Namen des POIs, der verändert werden soll.
 
 
-## homer_mapping (kinetic) - 0.1.6-1
+### TargetUnreachable
 
-The packages in the `homer_mapping` repository were released into the `kinetic` distro by running `/usr/bin/bloom-release --rosdistro kinetic --track kinetic homer_mapping` on `Thu, 17 Nov 2016 18:40:49 -0000`
 
-These packages were released:
-- `homer_map_manager`
-- `homer_mapnav_msgs`
-- `homer_mapping`
-- `homer_nav_libs`
-- `homer_navigation`
 
-Version of package(s) in repository `homer_mapping`:
+TargetUnreachable wird von der Navigation versendet, sobald kein Pfad mehr zu einem Ziel geplant werden kann.
 
-- upstream repository: git@gitlab.uni-koblenz.de:robbie/homer_mapping.git
-- release repository: git@gitlab.uni-koblenz.de:robbie/homer_mapping.git
-- rosdistro version: `0.1.6-0`
-- old version: `0.1.6-0`
-- new version: `0.1.6-1`
 
-Versions of tools used:
+~~~~~~ {.cpp}
+TargetUnreachable.msg
 
-- bloom version: `0.5.23`
-- catkin_pkg version: `0.2.10`
-- rosdep version: `0.11.5`
-- rosdistro version: `0.5.0`
-- vcstools version: `0.1.39`
+int8 UNKNOWN=0
+int8 TILT_OCCURED=10
+int8 GRAVE_TILT_OCCURED=15
+int8 STALL_OCCURED=20
+int8 LASER_OBSTACLE=30
 
+int8 reason
+~~~~~~
 
-## homer_mapping (kinetic) - 0.1.6-0
+* `reason` kann einen von den in dieser Message definierten Konstanten annehmen und beschreibt den Grund des Fehlers.
 
-The packages in the `homer_mapping` repository were released into the `kinetic` distro by running `/usr/bin/bloom-release --rosdistro kinetic --track kinetic homer_mapping` on `Fri, 04 Nov 2016 11:00:50 -0000`
 
-These packages were released:
-- `homer_map_manager`
-- `homer_mapnav_msgs`
-- `homer_mapping`
-- `homer_nav_libs`
-- `homer_navigation`
+### SaveMap
 
-Version of package(s) in repository `homer_mapping`:
+SaveMap wird versendet, wenn eine Karte gespeichert oder geladen werden soll und beinhaltet den Dateipfad zum Kartenordner.
 
-- upstream repository: git@gitlab.uni-koblenz.de:robbie/homer_mapping.git
-- release repository: git@gitlab.uni-koblenz.de:robbie/homer_mapping.git
-- rosdistro version: `0.1.5-0`
-- old version: `0.1.5-0`
-- new version: `0.1.6-0`
 
-Versions of tools used:
+~~~~~~ {.cpp}
+SaveMap.msg
 
-- bloom version: `0.5.23`
-- catkin_pkg version: `0.2.10`
-- rosdep version: `0.11.5`
-- rosdistro version: `0.5.0`
-- vcstools version: `0.1.39`
+string filename
+~~~~~~
 
+* `filename` bezeichnet den Dateipfad zum Kartenordner.
 
-## homer_mapping (kinetic) - 0.1.5-0
 
-The packages in the `homer_mapping` repository were released into the `kinetic` distro by running `/usr/bin/bloom-release --rosdistro kinetic --track kinetic homer_mapping` on `Thu, 03 Nov 2016 23:31:28 -0000`
+### PointsOfInterest
 
-These packages were released:
-- `homer_map_manager`
-- `homer_mapnav_msgs`
-- `homer_mapping`
-- `homer_nav_libs`
-- `homer_navigation`
 
-Version of package(s) in repository `homer_mapping`:
+PointsOfInterest wird verwendet, um alle aktuellen POIs zu versenden.
 
-- upstream repository: git@gitlab.uni-koblenz.de:robbie/homer_mapping.git
-- release repository: git@gitlab.uni-koblenz.de:robbie/homer_mapping.git
-- rosdistro version: `0.1.4-0`
-- old version: `0.1.4-0`
-- new version: `0.1.5-0`
 
-Versions of tools used:
+~~~~~~ {.cpp}
+PointsOfInterest.msg
 
-- bloom version: `0.5.23`
-- catkin_pkg version: `0.2.10`
-- rosdep version: `0.11.5`
-- rosdistro version: `0.5.0`
-- vcstools version: `0.1.39`
+PointOfInterest[] pois
+~~~~~~
 
+* `pois` beinhaltet einen Vektor mit allen aktuellen POIs.
 
-## homer_mapping (kinetic) - 0.1.4-0
 
-The packages in the `homer_mapping` repository were released into the `kinetic` distro by running `/usr/bin/bloom-release --rosdistro kinetic --track kinetic homer_mapping` on `Thu, 03 Nov 2016 22:52:01 -0000`
+### StartNavigation
 
-These packages were released:
-- `homer_map_manager`
-- `homer_mapnav_msgs`
-- `homer_mapping`
-- `homer_nav_libs`
-- `homer_navigation`
 
-Version of package(s) in repository `homer_mapping`:
+StartNavigation ist eine von zwei Methoden, um eine Navigation zu starten. Hier wird Der POI mitgegeben, zu dem der Roboter navigieren soll.
 
-- upstream repository: git@gitlab.uni-koblenz.de:robbie/homer_mapping.git
-- release repository: git@gitlab.uni-koblenz.de:robbie/homer_mapping.git
-- rosdistro version: `0.1.2-0`
-- old version: `0.1.2-0`
-- new version: `0.1.4-0`
 
-Versions of tools used:
+~~~~~~ {.cpp}
+StartNavigation.msg
 
-- bloom version: `0.5.23`
-- catkin_pkg version: `0.2.10`
-- rosdep version: `0.11.5`
-- rosdistro version: `0.5.0`
-- vcstools version: `0.1.39`
+geometry_msgs/Pose goal
+float32 distance_to_target
+bool skip_final_turn
+bool fast_planning
+~~~~~~
 
+* `goal` beinhaltet den Ziel-POI
+* `distance_to_target`: Hier kann angegeben werden, ab welcher Distanz zum Ziel die Navigation als erfolgreich abgeschlossen wird. 
+* `skip_final_turn`: Hier kann eingestellt werden, ob der Roboter sich am Ziel-POI in Richtund der POI-Orientierung ausrichten soll oder nicht.
+* `fast_planning`: Mit dieser Option kann ein experimentelles "Schnelles Planen" eingeschaltet werden. Es werden nur Pfade geplant, die sich in einer Boundingbox zwischen Roboter und Zielposition befinden.
 
-## homer_mapping (kinetic) - 0.1.2-0
 
-The packages in the `homer_mapping` repository were released into the `kinetic` distro by running `/usr/bin/bloom-release --rosdistro kinetic --track kinetic homer_mapping` on `Thu, 03 Nov 2016 21:35:49 -0000`
+### MapLayers
 
-These packages were released:
-- `homer_map_manager`
-- `homer_mapnav_msgs`
-- `homer_mapping`
-- `homer_nav_libs`
-- `homer_navigation`
+MapLayers definiert die vorhanden Kartenebenen als Konstanten und kann zudem verwendet werden, um einzelne Ebenen ein- oder auszuschalten.
 
-Version of package(s) in repository `homer_mapping`:
 
-- upstream repository: git@gitlab.uni-koblenz.de:robbie/homer_mapping.git
-- release repository: unknown
-- rosdistro version: `null`
-- old version: `0.1.1-0`
-- new version: `0.1.2-0`
+~~~~~~ {.cpp}
+MapLayers.msg
 
-Versions of tools used:
+int32 SLAM_LAYER=0
+int32 MASKING_LAYER=1
+int32 KINECT_LAYER=2
+int32 SICK_LAYER=3
 
-- bloom version: `0.5.23`
-- catkin_pkg version: `0.2.10`
-- rosdep version: `0.11.5`
-- rosdistro version: `0.5.0`
-- vcstools version: `0.1.39`
+int32 layer
+bool state
+~~~~~~
 
+* `layer` enthält die Kartenebenen-ID und kann einen Wert dern in dieser Message definierten Konstanten annehmen.
+* `state` besagt, ob die ausgewählte Kartenebene aktiviert sein soll.
 
-## homer_mapping (kinetic) - 0.1.1-0
 
-The packages in the `homer_mapping` repository were released into the `kinetic` distro by running `/usr/bin/bloom-release --rosdistro kinetic --track kinetic homer_mapping` on `Thu, 03 Nov 2016 21:29:57 -0000`
 
-These packages were released:
-- `homer_map_manager`
-- `homer_mapnav_msgs`
-- `homer_mapping`
-- `homer_nav_libs`
-- `homer_navigation`
 
-Version of package(s) in repository `homer_mapping`:
+### NavigateToPOI
 
-- upstream repository: git@gitlab.uni-koblenz.de:robbie/homer_mapping.git
-- release repository: unknown
-- rosdistro version: `null`
-- old version: `null`
-- new version: `0.1.1-0`
 
-Versions of tools used:
+NavigateToPOI ist die zweite Art eine Navigation zu starten. Anstatt das gesamte POI-Objekt mitzugeben, wird nur der Name eines bereits im map_manger vorhandenen POIs mitgegeben, der daraufhin von der Navigation nachgeschlagen wird.
 
-- bloom version: `0.5.23`
-- catkin_pkg version: `0.2.10`
-- rosdep version: `0.11.5`
-- rosdistro version: `0.5.0`
-- vcstools version: `0.1.39`
+~~~~~~ {.cpp}
+NavigateToPOI.msg
 
+string poi_name
+float32 distance_to_target
+bool skip_final_turn
+~~~~~~
 
-# mapping
+* `poi_name` beschreibt den Namen des POIS, zu dem navigiert werden soll.
+* `distance_to_target` siehe StartNavigation
+* `skip_final_turn` siehe StartNavigation
 
-See:
 
-* [mapping]
-* [navigation]
-* [map_manager]
-* [map_msgs]
-* [nav_libs]
+### ModifyMap
 
-[mapping]: homer_mapping/README.md
-[navigation]: homer_navigation/README.md
-[map_manager]: map_manager/README.md
-[map_msgs]: map_msgs/README.md
-[nav_libs]: nav_libs/README.md
+
+Mit dieser Message können Bereiche in einzelnen Kartenebenen verändert werden.
+
+
+~~~~~~ {.cpp}
+ModifyMap.msg
+
+int32 FREE = 0         
+int32 BLOCKED = 100    
+int32 OBSTACLE = 99     
+int32 NOT_MASKED = -1 
+
+geometry_msgs/Point[] region
+int32 maskAction
+int32 mapLayer 
+~~~~~~
+
+* `region` beschreibt die Eckpunkte des Polygons, das maskiert werden soll.
+* `maskAction` kann einen Wert der in dieser Message definierten Konstanten annehmen. OBSTACLE  wird in der Karte rot dargestellt. Mit NOT_MASKED können bereits maskierte Bereiche wieder gelöscht werden.
+* `mapLayer` enthält die ID der zu verändernden Kartenebene. Die IDs sind in der Message MapLayers definiert.
+
+
+
+### DeletePointOfInterest
+
+Löscht einen vorhandenen POI.
+
+
+~~~~~~ {.cpp}
+DeletePointOfInterest.msg
+
+string name
+~~~~~~
+
+* `name` beschreibt den Namen des zu löschenden POIs.
+
+
+### DoMapping
+
+
+
+Mit dieser Message kann das Mapping ein- oder ausgeschaltet werden.
+
+~~~~~~ {.cpp}
+DoMapping.msg
+
+bool state
+~~~~~~
+
+* `state` beinhaltet den Zustand des Mappings (true = an, false = off).
+
+
+## Services 
+
+### GetPointsOfInterest
+
+
+Über diesen Service kann die aktuelle Liste der POIs angefordert werden.
+
+
+~~~~~~ {.cpp}
+GetPointsOfInterest.srv
+
+---
+PointsOfInterest poi_list
+~~~~~~
+
+* `poi_list` beinhaltet einen Vektor mit allen aktuellen POIs.
+
 
