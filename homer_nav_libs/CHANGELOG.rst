@@ -2,8 +2,8 @@
 Changelog for package homer_nav_libs
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.1.11 (2017-01-19)
+-------------------
 * cool changelogs
 * Contributors: Lisa
 
