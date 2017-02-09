@@ -2,6 +2,11 @@
 Changelog for package homer_nav_libs
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* usage of nav_msgs
+* Contributors: Florian Polster
+
 0.1.11 (2017-01-19)
 -------------------
 * cool changelogs
