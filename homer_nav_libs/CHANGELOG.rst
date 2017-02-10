@@ -2,8 +2,8 @@
 Changelog for package homer_nav_libs
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.1.13 (2017-02-10)
+-------------------
 * now bugfix?
 * best changelog ever
 * dependency fix
