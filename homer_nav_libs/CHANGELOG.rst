@@ -2,6 +2,16 @@
 Changelog for package homer_nav_libs
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+0.1.13 (2017-02-10)
+-------------------
+* now bugfix?
+* best changelog ever
+* dependency fix
+* Contributors: Florian Polster
+
+* dependency fix
+* Contributors: Florian Polster
+
 0.1.12 (2017-02-09)
 -------------------
 * usage of nav_msgs
