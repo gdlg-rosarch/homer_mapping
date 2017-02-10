@@ -17,7 +17,7 @@ find_package(Eigen3 REQUIRED)
 catkin_package(
 	INCLUDE_DIRS include
 	LIBRARIES homerExplorer homerMappingMath
-	CATKIN_DEPENDS  roscpp geometry_msgs tf
+	CATKIN_DEPENDS  roscpp geometry_msgs tf sensor_msgs nav_msgs
 )
 
 
