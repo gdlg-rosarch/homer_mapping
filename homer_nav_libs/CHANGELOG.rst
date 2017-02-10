@@ -4,6 +4,11 @@ Changelog for package homer_nav_libs
 
 Forthcoming
 -----------
+* now bugfix?
+* best changelog ever
+* dependency fix
+* Contributors: Florian Polster
+
 * dependency fix
 * Contributors: Florian Polster
 

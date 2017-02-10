@@ -4,6 +4,8 @@ Changelog for package homer_mapnav_msgs
 
 Forthcoming
 -----------
+* best changelog ever
+* Contributors: Florian Polster
 
 0.1.12 (2017-02-09)
 -------------------
