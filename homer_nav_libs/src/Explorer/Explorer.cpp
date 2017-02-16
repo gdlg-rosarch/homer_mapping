@@ -127,11 +127,21 @@ void Explorer::setStart(Eigen::Vector2i start) {
         ROS_ERROR_STREAM("Occupancy map is missing.");
         return;
     }
-    if ((start.x() <= 1) || (start.y() <= 1) ||
-        (start.x() >= m_OccupancyMap->width() - 1) ||
-        (start.y() >= m_OccupancyMap->height() - 1)) {
-        ROS_ERROR_STREAM("Invalid position!");
-        return;
+    if (start.x() <= 1)
+    { 
+        start.x() = 2;
+    }
+    if (start.y() <= 1)
+    {
+        start.y() = 2;
+    }
+    if (start.x() >= m_OccupancyMap->width() - 1) 
+    {
+        start.x() = m_OccupancyMap->width() - 2;
+    }
+    if (start.y() >= m_OccupancyMap->height() - 1)
+    {
+        start.y() = m_OccupancyMap->height() -2;
     }
     computeWalkableMaps();
 
@@ -156,11 +166,21 @@ Eigen::Vector2i Explorer::getNearestAccessibleTarget(Eigen::Vector2i target) {
         ROS_ERROR("Occupancy map is missing.");
         return target;
     }
-    if ((target.x() <= 1) || (target.y() <= 1) ||
-        (target.x() >= m_OccupancyMap->width() - 1) ||
-        (target.y() >= m_OccupancyMap->height() - 1)) {
-        ROS_ERROR("Invalid position!");
-        return target;
+    if (target.x() <= 1)
+    { 
+        target.x() = 2;
+    }
+    if (target.y() <= 1)
+    {
+        target.y() = 2;
+    }
+    if (target.x() >= m_OccupancyMap->width() - 1) 
+    {
+        target.x() = m_OccupancyMap->width() - 2;
+    }
+    if (target.y() >= m_OccupancyMap->height() - 1)
+    {
+        target.y() = m_OccupancyMap->height() -2;
     }
     computeApproachableMaps();
     computeWalkableMaps();
@@ -204,11 +224,21 @@ Eigen::Vector2i Explorer::getNearestWalkablePoint(Eigen::Vector2i target) {
         ROS_ERROR("Occupancy map is missing.");
         return target;
     }
-    if ((target.x() <= 1) || (target.y() <= 1) ||
-        (target.x() >= m_OccupancyMap->width() - 1) ||
-        (target.y() >= m_OccupancyMap->height() - 1)) {
-        ROS_ERROR("Invalid position!");
-        return target;
+    if (target.x() <= 1)
+    { 
+        target.x() = 2;
+    }
+    if (target.y() <= 1)
+    {
+        target.y() = 2;
+    }
+    if (target.x() >= m_OccupancyMap->width() - 1) 
+    {
+        target.x() = m_OccupancyMap->width() - 2;
+    }
+    if (target.y() >= m_OccupancyMap->height() - 1)
+    {
+        target.y() = m_OccupancyMap->height() -2;
     }
 
     computeWalkableMaps();
@@ -243,11 +273,21 @@ void Explorer::setTarget(Eigen::Vector2i target) {
         ROS_ERROR("Occupancy map is missing.");
         return;
     }
-    if ((target.x() <= 1) || (target.y() <= 1) ||
-        (target.x() >= m_OccupancyMap->width() - 1) ||
-        (target.y() >= m_OccupancyMap->height() - 1)) {
-        ROS_ERROR("Invalid position!");
-        return;
+    if (target.x() <= 1)
+    { 
+        target.x() = 2;
+    }
+    if (target.y() <= 1)
+    {
+        target.y() = 2;
+    }
+    if (target.x() >= m_OccupancyMap->width() - 1) 
+    {
+        target.x() = m_OccupancyMap->width() - 2;
+    }
+    if (target.y() >= m_OccupancyMap->height() - 1)
+    {
+        target.y() = m_OccupancyMap->height() -2;
     }
     computeApproachableMaps();
     if (!isApproachable(target.x(), target.y())) {
@@ -271,12 +311,21 @@ void Explorer::setTarget(Eigen::Vector2i target, int desiredDistance) {
         return;
     }
 
-    if (target.x() + desiredDistance <= 1 ||
-        target.x() - desiredDistance >= m_OccupancyMap->width() - 1 ||
-        target.y() + desiredDistance <= 1 ||
-        target.y() - desiredDistance >= m_OccupancyMap->height() - 1) {
-        ROS_ERROR("Invalid position");
-        return;
+    if (target.x() + desiredDistance <= 1)
+    { 
+        target.x() = 2;
+    }
+    if (target.y() + desiredDistance <= 1)
+    {
+        target.y() = 2;
+    }
+    if (target.x() - desiredDistance >= m_OccupancyMap->width() - 1) 
+    {
+        target.x() = m_OccupancyMap->width() - 2;
+    }
+    if (target.y() - desiredDistance >= m_OccupancyMap->height() - 1)
+    {
+        target.y() = m_OccupancyMap->height() -2;
     }
     computeApproachableMaps();
     // TODO: check if region is approachable
