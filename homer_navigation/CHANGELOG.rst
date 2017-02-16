@@ -2,6 +2,11 @@
 Changelog for package homer_navigation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+0.1.15 (2017-02-16)
+-------------------
+* map_manager without laser scans
+* Contributors: Lisa
+
 0.1.14 (2017-02-10)
 -------------------
 * changed check path and waypoint angle speed
