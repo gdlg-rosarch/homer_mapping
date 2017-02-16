@@ -1,0 +1,3 @@
+geometry_msgs/PointStamped point
+---
+homer_mapnav_msgs/RegionOfInterest[]  rois
