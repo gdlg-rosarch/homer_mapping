@@ -1,12 +1,14 @@
 <package>
   <name>homer_mapping</name>
-  <version>0.1.15</version>
+  <version>0.1.16</version>
   <description>
 
      homer_mapping
 
   </description>
-  <maintainer email="vseib@uni-koblenz.de">Viktor Seib</maintainer>
+  <maintainer email="fpolster@uni-koblenz.de">Florian Polster</maintainer>
+  <maintainer email="raphael@uni-koblenz.de">Raphael Memmesheimer</maintainer>
+
   <author email="mknauf@uni-koblenz.de">Malte Knauf</author>
 
   <license>GPLv3</license>
