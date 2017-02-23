@@ -2,6 +2,11 @@
 Changelog for package homer_mapnav_msgs
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+0.1.16 (2017-02-23)
+-------------------
+* changed maintainer
+* Contributors: Raphael Memmesheimer
+
 0.1.15 (2017-02-16)
 -------------------
 
