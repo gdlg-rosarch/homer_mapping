@@ -1,10 +1,11 @@
 <?xml version="1.0"?>
 <package>
   <name>homer_nav_libs</name>
-  <version>0.1.15</version>
+  <version>0.1.16</version>
   <description>The nav_libs package</description>
 
-  <maintainer email="vseib@uni-koblenz.de">Viktor Seib</maintainer>
+  <maintainer email="fpolster@uni-koblenz.de">Florian Polster</maintainer>
+  <maintainer email="raphael@uni-koblenz.de">Raphael Memmesheimer</maintainer>
   <author email="mknauf@uni-koblenz.de">Malte Knauf</author>
   <license>GPLv3</license>
 
