@@ -2,6 +2,25 @@
 Changelog for package homer_map_manager
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+0.1.15 (2017-02-16)
+-------------------
+* map_manager without laser scans
+* Contributors: Lisa
+
+0.1.14 (2017-02-10)
+-------------------
+
+0.1.13 (2017-02-10)
+-------------------
+* best changelog ever
+* Contributors: Florian Polster
+
+0.1.12 (2017-02-09)
+-------------------
+* map manager crash
+* latching enabled
+* Contributors: Florian Polster, Lisa
+
 0.1.11 (2017-01-19)
 -------------------
 * cool changelogs
