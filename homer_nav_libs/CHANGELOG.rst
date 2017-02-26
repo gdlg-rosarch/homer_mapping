@@ -2,6 +2,11 @@
 Changelog for package homer_nav_libs
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+0.1.17 (2017-02-26)
+-------------------
+* Eigen3 INCLUDE_DIR fix
+* Contributors: Niklas Yann Wettengel
+
 0.1.16 (2017-02-23)
 -------------------
 * changed maintainer
