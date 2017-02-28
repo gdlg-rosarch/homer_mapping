@@ -2,6 +2,11 @@
 Changelog for package homer_mapnav_msgs
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+0.1.18 (2017-02-28)
+-------------------
+* reworked ignore laser and obstacle position feedback
+* Contributors: Lisa
+
 0.1.17 (2017-02-26)
 -------------------
 
