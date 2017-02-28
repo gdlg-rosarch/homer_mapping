@@ -7,3 +7,5 @@ int8 LASER_TIMEOUT=35
 int8 NO_PATH_FOUND=40
 
 int8 reason
+
+geometry_msgs/PointStamped point
