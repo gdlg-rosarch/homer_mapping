@@ -1,3 +1,31 @@
+## homer_mapping (kinetic) - 0.1.19-0
+
+The packages in the `homer_mapping` repository were released into the `kinetic` distro by running `/usr/bin/bloom-release --rosdistro kinetic --track kinetic homer_mapping` on `Thu, 02 Mar 2017 15:51:11 -0000`
+
+These packages were released:
+- `homer_map_manager`
+- `homer_mapnav_msgs`
+- `homer_mapping`
+- `homer_nav_libs`
+- `homer_navigation`
+
+Version of package(s) in repository `homer_mapping`:
+
+- upstream repository: git@gitlab.uni-koblenz.de:robbie/homer_mapping.git
+- release repository: git@gitlab.uni-koblenz.de:robbie/homer_mapping.git
+- rosdistro version: `0.1.18-0`
+- old version: `0.1.18-0`
+- new version: `0.1.19-0`
+
+Versions of tools used:
+
+- bloom version: `0.5.24`
+- catkin_pkg version: `0.3.1`
+- rosdep version: `0.11.5`
+- rosdistro version: `0.6.1`
+- vcstools version: `0.1.39`
+
+
 ## homer_mapping (kinetic) - 0.1.18-0
 
 The packages in the `homer_mapping` repository were released into the `kinetic` distro by running `/usr/bin/bloom-release --rosdistro kinetic --track kinetic homer_mapping` on `Tue, 28 Feb 2017 15:53:51 -0000`
