@@ -84,10 +84,6 @@ void HomerNavigationNode::loadParameters() {
                       (double)1.2);
     ros::param::param("/homer_navigation/waypoint_sampling_threshold",
                       m_waypoint_sampling_threshold, (float)1.5);
-    m_AllowedObstacleDistance.first;
-    m_AllowedObstacleDistance.second;
-    m_SafeObstacleDistance.first;
-    m_SafeObstacleDistance.second;
 
     // check path
     ros::param::param("/homer_navigation/check_path", m_check_path, (bool)true);
@@ -235,7 +231,8 @@ void HomerNavigationNode::setExplorerMap() {
         }
     }
     if (m_fast_path_planning) {
-        maskMap(temp_map);
+        //TODO check why not functional
+        //maskMap(temp_map);
     }
     m_explorer->setOccupancyMap(
         boost::make_shared<nav_msgs::OccupancyGrid>(temp_map));
@@ -515,6 +512,7 @@ void HomerNavigationNode::performNextMove() {
                 m_seen_obstacle_before = true;
             } else {
                 m_seen_obstacle_before = false;
+                m_obstacle_on_path = false;
             }
         }
 
@@ -721,8 +719,8 @@ void HomerNavigationNode::performNextMove() {
     } else if (m_MainMachine.state() == AVOIDING_COLLISION) {
         if (isTargetPositionReached()) {
             return;
-        } else if (m_max_move_distance <= m_collision_distance &&
-                       m_waypoints.size() > 1 ||
+        } else if ((m_max_move_distance <= m_collision_distance &&
+                    m_waypoints.size() > 1) ||
                    m_max_move_distance <= m_collision_distance_near_target) {
             ROS_WARN_STREAM("Maximum driving distance too short ("
                             << m_max_move_distance << "m)! Moving back.");
@@ -1025,6 +1023,7 @@ float HomerNavigationNode::minTurnAngle(float angle1, float angle2) {
 
 void HomerNavigationNode::refreshParamsCallback(
     const std_msgs::Empty::ConstPtr& msg) {
+    (void) msg;
     ROS_INFO_STREAM("Refreshing Parameters");
     loadParameters();
 }
@@ -1062,10 +1061,10 @@ void HomerNavigationNode::calcMaxMoveDist() {
     for (auto d : m_max_move_distances) {
         m_max_move_distance = std::min(m_max_move_distance, d.second);
     }
-    if (m_max_move_distance <= m_collision_distance &&
-            std::fabs(m_act_speed) > 0.1 && m_waypoints.size() > 1 ||
-        m_max_move_distance <= m_collision_distance_near_target &&
-            std::fabs(m_act_speed) > 0.1 && m_waypoints.size() == 1 ||
+    if ((m_max_move_distance <= m_collision_distance &&
+         std::fabs(m_act_speed) > 0.1 && m_waypoints.size() > 1) ||
+        (m_max_move_distance <= m_collision_distance_near_target &&
+         std::fabs(m_act_speed) > 0.1 && m_waypoints.size() == 1) ||
         m_max_move_distance <= 0.1) {
         if (m_MainMachine.state() == FOLLOWING_PATH) {
             stopRobot();
@@ -1225,6 +1224,7 @@ void HomerNavigationNode::navigateToPOICallback(
 
 void HomerNavigationNode::stopNavigationCallback(
     const std_msgs::Empty::ConstPtr& msg) {
+    (void) msg;
     ROS_INFO_STREAM("Stopping navigation.");
     m_MainMachine.setState(IDLE);
     stopRobot();
