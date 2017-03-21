@@ -2,6 +2,11 @@
 Changelog for package homer_nav_libs
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* autoformat
+* Contributors: Niklas Yann Wettengel
+
 0.1.19 (2017-03-02)
 -------------------
 
