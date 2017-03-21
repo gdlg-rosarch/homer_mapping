@@ -8,8 +8,8 @@
 using namespace std;
 
 // Robot dimensions in m
-//       
-//       
+//
+//
 //  /-------------\  <-- MAX_X
 //  |      x      |
 //  |      |      |
@@ -24,99 +24,113 @@ using namespace std;
 //  MAX_Y      MIN_Y
 //
 float ROBOT_MIN_X = -0.30;
-float ROBOT_MAX_X =  0.30;
+float ROBOT_MAX_X = 0.30;
 float ROBOT_MIN_Y = -0.27;
-float ROBOT_MAX_Y =  0.27;
+float ROBOT_MAX_Y = 0.27;
 
+namespace
+{
+Eigen::AlignedBox2f InnerDangerZone, OuterDangerZone;
+float InnerDangerZoneFactor, OuterDangerZoneFactor;
 
-namespace {
-  Eigen::AlignedBox2f InnerDangerZone,
-        OuterDangerZone;
-  float InnerDangerZoneFactor,
-        OuterDangerZoneFactor;
+inline Eigen::AlignedBox2f loadRect(const string& path)
+{
+  pair<float, float> pX, pY;
+  ros::param::get(path + "/x_min", pX.first);
+  ros::param::get(path + "/x_max", pX.second);
+  ros::param::get(path + "/y_min", pY.first);
+  ros::param::get(path + "/y_max", pY.second);
 
-  inline Eigen::AlignedBox2f loadRect(const string& path)
-  {
-    pair<float, float> pX, pY;
-	ros::param::get(path + "/x_min", pX.first);
-	ros::param::get(path + "/x_max", pX.second);
-	ros::param::get(path + "/y_min", pY.first);
-	ros::param::get(path + "/y_max", pY.second);
-
-    Eigen::Vector2f first(pX.first, pY.first), second(pX.second, pY.second);
-    return Eigen::AlignedBox2f(first, second);
-  }  
+  Eigen::Vector2f first(pX.first, pY.first), second(pX.second, pY.second);
+  return Eigen::AlignedBox2f(first, second);
+}
 }
 
 void SpeedControl::loadDimensions()
 {
-  InnerDangerZone = loadRect("/homer_navigation/speed_control/inner_danger_zone");
+  InnerDangerZone =
+      loadRect("/homer_navigation/speed_control/inner_danger_zone");
   InnerDangerZoneFactor;
-  ros::param::get("/homer_navigation/speed_control/inner_danger_zone/speed_factor", InnerDangerZoneFactor);
-  OuterDangerZone = loadRect("/homer_navigation/speed_control/inner_danger_zone");
+  ros::param::get("/homer_navigation/speed_control/inner_danger_zone/"
+                  "speed_factor",
+                  InnerDangerZoneFactor);
+  OuterDangerZone =
+      loadRect("/homer_navigation/speed_control/inner_danger_zone");
   OuterDangerZoneFactor;
-  ros::param::get("/homer_navigation/speed_control/outer_danger_zone/speed_factor", OuterDangerZoneFactor);
-  if(!OuterDangerZone.contains(InnerDangerZone))
+  ros::param::get("/homer_navigation/speed_control/outer_danger_zone/"
+                  "speed_factor",
+                  OuterDangerZoneFactor);
+  if (!OuterDangerZone.contains(InnerDangerZone))
     ROS_WARN_STREAM("InnerDangerZone is not contained in OuterDangerZone");
 }
 
-float SpeedControl::getSpeedFactor(const vector<geometry_msgs::Point>& points, float minVal, float maxVal )
+float SpeedControl::getSpeedFactor(const vector<geometry_msgs::Point>& points,
+                                   float minVal, float maxVal)
 {
   float minFactor = 1.0;
   for (unsigned i = 0; i < points.size(); i++)
   {
     Eigen::Vector2f point(points[i].x, points[i].y);
-    if(InnerDangerZone.contains(point))
+    if (InnerDangerZone.contains(point))
     {
       minFactor = InnerDangerZoneFactor;
       break;
     }
-    if(OuterDangerZone.contains(point))
+    if (OuterDangerZone.contains(point))
       minFactor = OuterDangerZoneFactor;
   }
   minFactor = sqrt(minFactor);
   float range = maxVal - minVal;
-  minFactor = minVal + range*minFactor;
+  minFactor = minVal + range * minFactor;
   return minFactor;
 }
 
 float SpeedControl::getMaxMoveDistance(vector<geometry_msgs::Point> points)
 {
-  float minDistance = 4; // distance in m to nearest obstacle in front
+  float minDistance = 4;  // distance in m to nearest obstacle in front
   for (unsigned int i = 0; i < points.size(); i++)
   {
-      if(points[i].y > ROBOT_MIN_Y && points[i].y < ROBOT_MAX_Y && points[i].x > ROBOT_MAX_X)
+    if (points[i].y > ROBOT_MIN_Y && points[i].y < ROBOT_MAX_Y &&
+        points[i].x > ROBOT_MAX_X)
+    {
+      float distance =
+          sqrt((points[i].x * points[i].x) + (points[i].y * points[i].y));
+      if (distance < minDistance)
       {
-        float distance = sqrt((points[i].x * points[i].x) + (points[i].y * points[i].y));
-        if (distance < minDistance)
-        {
-          minDistance = distance;
-        }
+        minDistance = distance;
       }
+    }
   }
   float maxMoveDist = minDistance - ROBOT_MAX_X;
-  if (maxMoveDist < 0) {
+  if (maxMoveDist < 0)
+  {
     maxMoveDist = 0.0;
   }
   return maxMoveDist;
 }
 
-float SpeedControl::getMaxMoveDistance(std::vector< Eigen::Vector3d >* kinectData, float minObstacleHeight, float minObstacleFromRobotDistance, float maxObstacleFromRobotDistance)
+float SpeedControl::getMaxMoveDistance(std::vector<Eigen::Vector3d>* kinectData,
+                                       float minObstacleHeight,
+                                       float minObstacleFromRobotDistance,
+                                       float maxObstacleFromRobotDistance)
 {
   // Check for obstacles in Kinect image: Look for closest point
 
-  float minDistance = 4; // distance to nearest obstacle in front
+  float minDistance = 4;  // distance to nearest obstacle in front
 
-  for(int i=0;i<kinectData->size();++i)
+  for (int i = 0; i < kinectData->size(); ++i)
   {
-    Eigen::Vector2d p = Eigen::Vector2d(kinectData->at(i).x(), kinectData->at(i).y());
-    if(!std::isnan(p.x()))
+    Eigen::Vector2d p =
+        Eigen::Vector2d(kinectData->at(i).x(), kinectData->at(i).y());
+    if (!std::isnan(p.x()))
     {
       // Filter point cloud
-        if(p.x() > minObstacleFromRobotDistance && p.x() < maxObstacleFromRobotDistance && kinectData->at(i).z() > minObstacleHeight)
+      if (p.x() > minObstacleFromRobotDistance &&
+          p.x() < maxObstacleFromRobotDistance &&
+          kinectData->at(i).z() > minObstacleHeight)
       {
         // Check for collisions outside of robot
-        if(p.y() > ROBOT_MIN_Y && p.y() < ROBOT_MAX_Y && p.x() > ROBOT_MAX_X)
+        if (p.y() > ROBOT_MIN_Y && p.y() < ROBOT_MAX_Y && p.x() > ROBOT_MAX_X)
         {
           float distance = sqrt((p.x() * p.x()) + (p.y() * p.y()));
           if (distance < minDistance)
@@ -129,49 +143,56 @@ float SpeedControl::getMaxMoveDistance(std::vector< Eigen::Vector3d >* kinectDat
   }
 
   float maxMoveDist = minDistance - ROBOT_MAX_X;
-  if (maxMoveDist < 0) {
+  if (maxMoveDist < 0)
+  {
     maxMoveDist = 0.0;
   }
   return maxMoveDist;
 }
 
-float SpeedControl::getTurnSpeedFactor( float speedFactor, float turnAngle, float minVal, float maxVal )
+float SpeedControl::getTurnSpeedFactor(float speedFactor, float turnAngle,
+                                       float minVal, float maxVal)
 {
-  //turn faster for larger angles
-  float angleDependentFactor = sqrt( fabs(turnAngle) / M_PI );
-  angleDependentFactor = minVal + angleDependentFactor*(maxVal-minVal);
-  return sqrt( speedFactor * angleDependentFactor );
+  // turn faster for larger angles
+  float angleDependentFactor = sqrt(fabs(turnAngle) / M_PI);
+  angleDependentFactor = minVal + angleDependentFactor * (maxVal - minVal);
+  return sqrt(speedFactor * angleDependentFactor);
 }
 
-float SpeedControl::getMinTurnAngle(std::vector<geometry_msgs::Point> laserData, float minAngle, float maxAngle, float minDistance, float maxDistance)
+float SpeedControl::getMinTurnAngle(std::vector<geometry_msgs::Point> laserData,
+                                    float minAngle, float maxAngle,
+                                    float minDistance, float maxDistance)
 {
-    float turn_factor = 1.0;
-    for (unsigned int i = 0; i < laserData.size(); i++)
+  float turn_factor = 1.0;
+  for (unsigned int i = 0; i < laserData.size(); i++)
+  {
+    if (laserData[i].y > ROBOT_MIN_Y && laserData[i].y < ROBOT_MAX_Y &&
+        laserData[i].x > ROBOT_MAX_X)
     {
-        if(laserData[i].y > ROBOT_MIN_Y && laserData[i].y < ROBOT_MAX_Y && laserData[i].x > ROBOT_MAX_X)
-        {
-          float distance = sqrt((laserData[i].x * laserData[i].x) + (laserData[i].y * laserData[i].y));
-          if (distance < minDistance + ROBOT_MAX_X)
-          {
-            turn_factor = 0.0;
-          }
-          else if(distance > maxDistance + ROBOT_MAX_X)
-          {
-              turn_factor = 1.0;
-          }
-          else
-          {
-              turn_factor = (distance - minDistance)/maxDistance;
-          }
-        }
+      float distance = sqrt((laserData[i].x * laserData[i].x) +
+                            (laserData[i].y * laserData[i].y));
+      if (distance < minDistance + ROBOT_MAX_X)
+      {
+        turn_factor = 0.0;
+      }
+      else if (distance > maxDistance + ROBOT_MAX_X)
+      {
+        turn_factor = 1.0;
+      }
+      else
+      {
+        turn_factor = (distance - minDistance) / maxDistance;
+      }
     }
-    float range = maxAngle - minAngle;
-    return minAngle + turn_factor * range;
+  }
+  float range = maxAngle - minAngle;
+  return minAngle + turn_factor * range;
 }
 
-SpeedControl::SpeedControl() {
+SpeedControl::SpeedControl()
+{
 }
 
-SpeedControl::~SpeedControl() {
+SpeedControl::~SpeedControl()
+{
 }
-
