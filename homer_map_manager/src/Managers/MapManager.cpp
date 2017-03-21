@@ -24,18 +24,6 @@ MapManager::MapManager(ros::NodeHandle *nh)
     m_MapVisibility[m_laser_layers[i]] = true;
   }
 
-  // try {
-  // m_TransformListener.waitForTransform("/base_link", "/laser",
-  // ros::Time(0), ros::Duration(3));
-  // m_TransformListener.lookupTransform("/base_link", "/laser",
-  // ros::Time(0), m_sick_transform);
-  // m_TransformListener.lookupTransform("/base_link", "/hokuyo_front",
-  // ros::Time(0), m_hokuyo_transform);
-  // m_got_transform = true;
-  //} catch (tf::TransformException ex) {
-  // ROS_ERROR("%s", ex.what());
-  // m_got_transform = false;
-  //}
   geometry_msgs::PoseStamped pose;
   pose.pose.position.x = 0;
   pose.pose.position.y = 0;
@@ -53,10 +41,7 @@ void MapManager::updateMapLayer(int type,
                                 nav_msgs::OccupancyGrid::ConstPtr layer)
 {
   m_MapLayers[type] = layer;
-  if (type == homer_mapnav_msgs::MapLayers::SLAM_LAYER)
-  {
-    sendMergedMap();
-  }
+  sendMergedMap();
 }
 
 void MapManager::clearMapLayers()

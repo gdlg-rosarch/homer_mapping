@@ -7,30 +7,24 @@
 #include <iostream>
 #include <map>
 #include <sstream>
-#include <sstream>
 #include <vector>
-#include <vector>
-
-#include <homer_nav_libs/Math/Pose.h>
-
-#include <tf/transform_broadcaster.h>
 
 #include <geometry_msgs/Pose.h>
+#include <geometry_msgs/PoseArray.h>
 #include <geometry_msgs/PoseWithCovariance.h>
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
+#include <homer_mapping/OccupancyMap/OccupancyMap.h>
+#include <homer_mapping/ParticleFilter/HyperSlamFilter.h>
+#include <homer_mapping/ParticleFilter/SlamFilter.h>
+#include <homer_nav_libs/Math/Box2D.h>
+#include <homer_nav_libs/Math/Pose.h>
 #include <nav_msgs/OccupancyGrid.h>
-#include <nav_msgs/OccupancyGrid.h>
-#include <nav_msgs/Odometry.h>
 #include <nav_msgs/Odometry.h>
 #include <sensor_msgs/LaserScan.h>
 #include <std_msgs/Bool.h>
 #include <std_msgs/Empty.h>
 #include <tf/tf.h>
-
-#include <homer_mapping/OccupancyMap/OccupancyMap.h>
-#include <homer_mapping/ParticleFilter/HyperSlamFilter.h>
-#include <homer_mapping/ParticleFilter/SlamFilter.h>
-#include <homer_nav_libs/Math/Box2D.h>
+#include <tf/transform_broadcaster.h>
 
 class OccupancyMap;
 class SlamFilter;
@@ -40,7 +34,8 @@ class HyperSlamFilter;
  * @class SlamNode
  *
  * @author Malte Knauf, Stephan Wirth, Susanne Maur (RX), David Gossow (RX),
- *         Christian Fuchs (R12), Nicolai Wojke (R14), Susanne Thierfelder (R16)
+ *         Christian Fuchs (R12), Nicolai Wojke (R14), Susanne Thierfelder
+ * (R16), Florian Polster (R28)
  *
  *
  * @brief The Simultaneous localization and mapping module
@@ -89,47 +84,31 @@ private:
   void resetMaps();
 
   /**
-   * This function processes the current odometry data in combination with the
-   * last send odometry and laser informations to pass on corresponding data
-   * to the filter threads.
-
-  /**
    * This method retrieves the current map of the slam filter and sends a map
    * data message containing the map.
    */
   void sendMapDataMessage(ros::Time mapTime = ros::Time::now());
 
+  void sendTfAndPose(Pose pose, ros::Time stamp);
+
+  void sendPoseArray(std::vector<Pose> poses);
+
+  Pose getInterpolatedPose(nav_msgs::Odometry::ConstPtr pose1,
+                           nav_msgs::Odometry::ConstPtr pose2,
+                           ros::Time laserTime);
+
   /**
    * This variables stores the last odometry measurement as reference that is
    * used
-   * to compute the pose of the robot during a specific laserscan.
+   * to compute the transformation to the new odometry measurement
    */
-  Pose m_ReferenceOdometryPose;
-
-  Pose m_LastLikeliestPose;
-
-  /**
-   * This variable stores the time of the last odometry measurement as reference
-   * which is used to compute the pose of the robot during a specific laserscan.
-   */
-  ros::Time m_ReferenceOdometryTime;
+  Pose m_lastUsedPose;
 
   /**
    * This variable stores the time the last map message was sent to be able to
    * compute the time for the next map send.
    */
   ros::Time m_LastMapSendTime;
-  ros::Time m_LastPositionSendTime;
-
-  /**
-   * This variable stores the last laser measurement.
-   */
-  sensor_msgs::LaserScan::ConstPtr m_LastLaserData;
-
-  /**
-   * time stamp of last particle filter step
-   */
-  ros::Time m_LastMappingTime;
 
   /**
    * This variable stores a pointer to the hyper slam filter
@@ -155,11 +134,6 @@ private:
   std::vector<nav_msgs::Odometry::ConstPtr> m_odom_queue;
 
   /**
-   * duration to wait between two particle filter steps
-   */
-  ros::Duration m_WaitDuration;
-
-  /**
    * Broadcasts the transform map -> base_link
    */
   tf::TransformBroadcaster m_tfBroadcaster;
@@ -178,6 +152,7 @@ private:
   ros::Subscriber m_InitialPoseSubscriber;
 
   ros::Publisher m_PoseStampedPublisher;
+  ros::Publisher m_PoseArrayPublisher;
   ros::Publisher m_SLAMMapPublisher;
 };
 

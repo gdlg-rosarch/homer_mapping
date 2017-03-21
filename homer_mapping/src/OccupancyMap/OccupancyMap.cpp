@@ -1,38 +1,7 @@
 #include <homer_mapping/OccupancyMap/OccupancyMap.h>
-
-#include <homer_nav_libs/Math/Math.h>
-
-#include <QtGui/QImage>
-#include <cmath>
-#include <fstream>
-#include <sstream>
-#include <vector>
-
-#include <Eigen/Geometry>
-
-#include <ros/ros.h>
-#include <tf/transform_listener.h>
-
-#include <homer_mapnav_msgs/ModifyMap.h>
 #include <homer_nav_libs/tools.h>
 
-// uncomment this to get extended information on the tracer
-//#define TRACER_OUTPUT
-
 using namespace std;
-
-const float UNKNOWN_LIKELIHOOD = 0.3;
-
-// Flags of current changes //
-const char NO_CHANGE = 0;
-const char OCCUPIED = 1;
-const char FREE = 2;
-// the safety border around occupied pixels which is left unchanged
-const char SAFETY_BORDER = 3;
-///////////////////////////////
-
-// assumed laser measure count for loaded maps
-const int LOADED_MEASURECOUNT = 10;
 
 OccupancyMap::OccupancyMap()
 {
@@ -57,50 +26,31 @@ OccupancyMap::OccupancyMap()
   initMembers();
 }
 
-OccupancyMap::OccupancyMap(float*& occupancyProbability,
-                           geometry_msgs::Pose origin, float resolution,
-                           int width, int height, Box2D<int> exploredRegion)
+OccupancyMap::OccupancyMap(const nav_msgs::OccupancyGrid::ConstPtr& msg)
 {
-  m_metaData.origin = origin;
-  m_metaData.resolution = resolution;
-  m_metaData.width = width;
-  m_metaData.height = height;
-  m_ByteSize = m_metaData.width * m_metaData.height;
+  m_metaData = msg->info;
+  m_ByteSize = msg->data.size();
   initMembers();
 
-  m_ExploredRegion = exploredRegion;
-  m_ChangedRegion = exploredRegion;
-
-  if (m_OccupancyProbability)
+  for (unsigned i = 0; i < msg->data.size(); i++)
   {
-    delete[] m_OccupancyProbability;
-  }
-  m_OccupancyProbability = occupancyProbability;
-  for (unsigned i = 0; i < m_ByteSize; i++)
-  {
-    if (m_OccupancyProbability[i] != 0.5)
+    if (msg->data[i] != -1)
     {
-      m_MeasurementCount[i] = LOADED_MEASURECOUNT;
-      m_OccupancyCount[i] =
-          m_OccupancyProbability[i] * (float)LOADED_MEASURECOUNT;
+      m_MapPoints[i].OccupancyProbability = msg->data[i] / 100.0;
+      m_MapPoints[i].MeasurementCount = LOADED_MEASURECOUNT;
+      m_MapPoints[i].OccupancyCount =
+          m_MapPoints[i].OccupancyProbability * LOADED_MEASURECOUNT;
     }
   }
 }
 
 OccupancyMap::OccupancyMap(const OccupancyMap& occupancyMap)
 {
-  m_OccupancyProbability = 0;
-  m_MeasurementCount = 0;
-  m_OccupancyCount = 0;
-  m_CurrentChanges = 0;
-  m_HighSensitive = 0;
-
   *this = occupancyMap;
 }
 
 OccupancyMap::~OccupancyMap()
 {
-  cleanUp();
 }
 
 void OccupancyMap::initMembers()
@@ -112,79 +62,21 @@ void OccupancyMap::initMembers()
   ros::param::get("/homer_mapping/laser_scanner/free_reading_distance",
                   m_FreeReadingDistance);
 
-  m_OccupancyProbability = new float[m_ByteSize];
-  m_MeasurementCount = new unsigned short[m_ByteSize];
-  m_OccupancyCount = new unsigned short[m_ByteSize];
-  m_CurrentChanges = new unsigned char[m_ByteSize];
-  m_HighSensitive = new unsigned short[m_ByteSize];
-  for (unsigned i = 0; i < m_ByteSize; i++)
-  {
-    m_OccupancyProbability[i] = UNKNOWN_LIKELIHOOD;
-    m_OccupancyCount[i] = 0;
-    m_MeasurementCount[i] = 0;
-    m_CurrentChanges[i] = NO_CHANGE;
-    m_HighSensitive[i] = 0;
-  }
+  m_MapPoints.resize(m_ByteSize);
 
-  m_ExploredRegion =
-      Box2D<int>(m_metaData.width / 2.1, m_metaData.height / 2.1,
-                 m_metaData.width / 1.9, m_metaData.height / 1.9);
-  maximizeChangedRegion();
-
-  try
-  {
-    bool got_transform = m_tfListener.waitForTransform(
-        "/base_link", "/laser", ros::Time(0), ros::Duration(1));
-    while (!got_transform)
-      ;
-    {
-      got_transform = m_tfListener.waitForTransform(
-          "/base_link", "/laser", ros::Time(0), ros::Duration(1));
-      if (!got_transform)
-      {
-        ROS_ERROR_STREAM("need transformation from base_link to laser!");
-      }
-    }
-
-    m_tfListener.lookupTransform("/base_link", "/laser", ros::Time(0),
-                                 m_laserTransform);
-  }
-  catch (tf::TransformException ex)
-  {
-    ROS_ERROR_STREAM(ex.what());
-  }
+  m_ChangedRegion.enclose(
+      Box2D<int>(0, 0, m_metaData.width - 1, m_metaData.height - 1));
+  m_ExploredRegion.enclose(
+      Box2D<int>(0, 0, m_metaData.width - 1, m_metaData.height - 1));
 }
 
 OccupancyMap& OccupancyMap::operator=(const OccupancyMap& occupancyMap)
 {
-  // free allocated memory
-  cleanUp();
-
   m_metaData = occupancyMap.m_metaData;
-
   m_ExploredRegion = occupancyMap.m_ExploredRegion;
   m_ByteSize = occupancyMap.m_ByteSize;
 
-  ros::param::get("/homer_mapping/backside_checking", m_BacksideChecking);
-
-  // re-allocate all arrays
-  m_OccupancyProbability = new float[m_ByteSize];
-  m_MeasurementCount = new unsigned short[m_ByteSize];
-  m_OccupancyCount = new unsigned short[m_ByteSize];
-  m_CurrentChanges = new unsigned char[m_ByteSize];
-  m_HighSensitive = new unsigned short[m_ByteSize];
-
-  // copy array data
-  memcpy(m_OccupancyProbability, occupancyMap.m_OccupancyProbability,
-         m_ByteSize * sizeof(*m_OccupancyProbability));
-  memcpy(m_MeasurementCount, occupancyMap.m_MeasurementCount,
-         m_ByteSize * sizeof(*m_MeasurementCount));
-  memcpy(m_OccupancyCount, occupancyMap.m_OccupancyCount,
-         m_ByteSize * sizeof(*m_OccupancyCount));
-  memcpy(m_CurrentChanges, occupancyMap.m_CurrentChanges,
-         m_ByteSize * sizeof(*m_CurrentChanges));
-  memcpy(m_HighSensitive, occupancyMap.m_HighSensitive,
-         m_ByteSize * sizeof(*m_HighSensitive));
+  m_MapPoints = occupancyMap.m_MapPoints;
 
   return *this;
 }
@@ -196,21 +88,9 @@ void OccupancyMap::changeMapSize(int x_add_left, int y_add_up, int x_add_right,
   int new_height = m_metaData.height + y_add_up + y_add_down;
 
   m_ByteSize = new_width * new_height;
-  // allocate all arrays
-  float* OccupancyProbability = new float[m_ByteSize];
-  unsigned short* MeasurementCount = new unsigned short[m_ByteSize];
-  unsigned short* OccupancyCount = new unsigned short[m_ByteSize];
-  unsigned char* CurrentChanges = new unsigned char[m_ByteSize];
-  unsigned short* HighSensitive = new unsigned short[m_ByteSize];
 
-  for (unsigned i = 0; i < m_ByteSize; i++)
-  {
-    OccupancyProbability[i] = UNKNOWN_LIKELIHOOD;
-    OccupancyCount[i] = 0;
-    MeasurementCount[i] = 0;
-    CurrentChanges[i] = NO_CHANGE;
-    HighSensitive[i] = 0;
-  }
+  std::vector<PixelValue> tmpMap;
+  tmpMap.resize(m_ByteSize);
 
   for (int y = 0; y < m_metaData.height; y++)
   {
@@ -218,11 +98,7 @@ void OccupancyMap::changeMapSize(int x_add_left, int y_add_up, int x_add_right,
     {
       int i = y * m_metaData.width + x;
       int in = (y + y_add_up) * new_width + (x + x_add_left);
-      OccupancyProbability[in] = m_OccupancyProbability[i];
-      MeasurementCount[in] = m_MeasurementCount[i];
-      OccupancyCount[in] = m_OccupancyCount[i];
-      CurrentChanges[in] = m_CurrentChanges[i];
-      HighSensitive[in] = m_HighSensitive[i];
+      tmpMap[in] = m_MapPoints[i];
     }
   }
 
@@ -241,13 +117,7 @@ void OccupancyMap::changeMapSize(int x_add_left, int y_add_up, int x_add_right,
   m_metaData.origin.position.x -= (x_add_left)*m_metaData.resolution;
   m_metaData.origin.position.y -= (y_add_up)*m_metaData.resolution;
 
-  cleanUp();
-
-  m_OccupancyProbability = OccupancyProbability;
-  m_MeasurementCount = MeasurementCount;
-  m_OccupancyCount = OccupancyCount;
-  m_CurrentChanges = CurrentChanges;
-  m_HighSensitive = HighSensitive;
+  m_MapPoints = tmpMap;
 }
 
 int OccupancyMap::width() const
@@ -267,7 +137,7 @@ float OccupancyMap::getOccupancyProbability(Eigen::Vector2i p)
     return UNKNOWN_LIKELIHOOD;
   }
   unsigned offset = m_metaData.width * p.y() + p.x();
-  return m_OccupancyProbability[offset];
+  return m_MapPoints[offset].OccupancyProbability;
 }
 
 void OccupancyMap::resetHighSensitive()
@@ -284,41 +154,33 @@ void OccupancyMap::computeOccupancyProbabilities()
     for (int x = m_ChangedRegion.minX(); x <= m_ChangedRegion.maxX(); x++)
     {
       int i = x + yOffset;
-      if (m_MeasurementCount[i] > 0)
+      if (m_MapPoints[i].MeasurementCount > 0)
       {
-        // int maxCount = 100; //TODO param
-        // if(m_MeasurementCount[i] > maxCount * 2 -1)
-        //{
-        // int scalingFactor = m_MeasurementCount[i] / maxCount;
-        // if ( scalingFactor != 0 )
-        //{
-        // m_MeasurementCount[i] /= scalingFactor;
-        // m_OccupancyCount[i] /= scalingFactor;
-        //}
-        //}
-        m_OccupancyProbability[i] =
-            m_OccupancyCount[i] / static_cast<float>(m_MeasurementCount[i]);
-        if (m_HighSensitive[i] == 1)
+        m_MapPoints[i].OccupancyProbability =
+            m_MapPoints[i].OccupancyCount /
+            static_cast<float>(m_MapPoints[i].MeasurementCount);
+        if (m_MapPoints[i].HighSensitive == 1)
         {
           if (m_reset_high == true)
           {
-            m_OccupancyCount[i] = 0;
-            m_OccupancyProbability[i] = 0;
+            m_MapPoints[i].OccupancyCount = 0;
+            m_MapPoints[i].OccupancyProbability = 0;
           }
-          if (m_MeasurementCount[i] > 20)
+          if (m_MapPoints[i].MeasurementCount > 20)
           {
-            m_MeasurementCount[i] = 10;
-            m_OccupancyCount[i] = 10 * m_OccupancyProbability[i];
+            m_MapPoints[i].MeasurementCount = 10;
+            m_MapPoints[i].OccupancyCount =
+                10 * m_MapPoints[i].OccupancyProbability;
           }
-          if (m_OccupancyProbability[i] > 0.3)
+          if (m_MapPoints[i].OccupancyProbability > 0.3)
           {
-            m_OccupancyProbability[i] = 1;
+            m_MapPoints[i].OccupancyProbability = 1;
           }
         }
       }
       else
       {
-        m_OccupancyProbability[i] = UNKNOWN_LIKELIHOOD;
+        m_MapPoints[i].OccupancyProbability = UNKNOWN_LIKELIHOOD;
       }
     }
   }
@@ -335,15 +197,16 @@ void OccupancyMap::insertLaserData(sensor_msgs::LaserScan::ConstPtr laserData,
   markRobotPositionFree();
 
   std::vector<RangeMeasurement> ranges;
-  ranges.reserve(laserData->ranges.size());
 
   bool errorFound = false;
   int lastValidIndex = -1;
   float lastValidRange = m_FreeReadingDistance;
 
   RangeMeasurement rangeMeasurement;
-  rangeMeasurement.sensorPos.x = m_laserTransform.getOrigin().getX();
-  rangeMeasurement.sensorPos.y = m_laserTransform.getOrigin().getY();
+  rangeMeasurement.sensorPos.x =
+      getLaserTransform(laserData->header.frame_id).getOrigin().getX();
+  rangeMeasurement.sensorPos.y =
+      getLaserTransform(laserData->header.frame_id).getOrigin().getY();
 
   for (unsigned int i = 0; i < laserData->ranges.size(); i++)
   {
@@ -355,7 +218,7 @@ void OccupancyMap::insertLaserData(sensor_msgs::LaserScan::ConstPtr laserData,
       if (errorFound)
       {
         // smaller of the two ranges belonging to end points
-        float range = Math::min(lastValidRange, laserData->ranges[i]);
+        float range = std::min(lastValidRange, laserData->ranges[i]);
         range -= m_metaData.resolution * 2;
         if (range < m_FreeReadingDistance)
         {
@@ -374,9 +237,10 @@ void OccupancyMap::insertLaserData(sensor_msgs::LaserScan::ConstPtr laserData,
           pin.setX(cos(alpha) * range);
           pin.setY(sin(alpha) * range);
           pin.setZ(0);
-          pout = m_laserTransform * pin;
+          pout = getLaserTransform(laserData->header.frame_id) * pin;
           rangeMeasurement.endPos.x = pout.x();
           rangeMeasurement.endPos.y = pout.y();
+          rangeMeasurement.range = range;
           rangeMeasurement.free = true;
           ranges.push_back(rangeMeasurement);
         }
@@ -387,9 +251,10 @@ void OccupancyMap::insertLaserData(sensor_msgs::LaserScan::ConstPtr laserData,
       pin.setX(cos(alpha) * laserData->ranges[i]);
       pin.setY(sin(alpha) * laserData->ranges[i]);
       pin.setZ(0);
-      pout = m_laserTransform * pin;
+      pout = getLaserTransform(laserData->header.frame_id) * pin;
       rangeMeasurement.endPos.x = pout.x();
       rangeMeasurement.endPos.y = pout.y();
+      rangeMeasurement.range = laserData->ranges[i];
       rangeMeasurement.free = false;
       ranges.push_back(rangeMeasurement);
       errorFound = false;
@@ -401,7 +266,6 @@ void OccupancyMap::insertLaserData(sensor_msgs::LaserScan::ConstPtr laserData,
       errorFound = true;
     }
   }
-
   insertRanges(ranges, laserData->header.stamp);
 }
 
@@ -435,28 +299,38 @@ void OccupancyMap::insertRanges(vector<RangeMeasurement> ranges,
       sensorPosWorld, m_metaData.origin, m_metaData.resolution);
   m_ChangedRegion.enclose(sensorPixel.x(), sensorPixel.y());
 
-  ////paint safety borders
-  // if ( m_ObstacleBorders )
-  //{
-  // for ( unsigned i=0; i<ranges.size(); i++ )
-  //{
-  // Eigen::Vector2i endPixel = map_pixel[i];
+  // paint safety borders
+  if (m_ObstacleBorders)
+  {
+    for (unsigned i = 0; i < ranges.size(); i++)
+    {
+      if (i < 2 || i > ranges.size() - 2)
+      {
+        continue;
+      }
+      if (ranges[i].range <= m_FreeReadingDistance)
+      {
+        continue;
+      }
+      Eigen::Vector2i endPixel = map_pixel[i];
 
-  // for ( int y=endPixel.y()-1; y <= endPixel.y() +1; y++ )
-  //{
-  // if(y > m_metaData.height) continue;
-  // for ( int x=endPixel.x()-1; x <= endPixel.x() +1; x++ )
-  //{
-  // if(x > m_metaData.width) continue;
-  // unsigned offset=x+m_metaData.width*y;
-  // if ( offset < unsigned ( m_ByteSize ) )
-  //{
-  // m_CurrentChanges[ offset ] = SAFETY_BORDER;
-  //}
-  //}
-  //}
-  //}
-  //}
+      for (int y = endPixel.y() - 2; y <= endPixel.y() + 2; y++)
+      {
+        if (y > m_metaData.height || y < 0)
+          continue;
+        for (int x = endPixel.x() - 2; x <= endPixel.x() + 2; x++)
+        {
+          if (x > m_metaData.width || x < 0)
+            continue;
+          unsigned offset = x + m_metaData.width * y;
+          if (offset < unsigned(m_ByteSize))
+          {
+            m_MapPoints[offset].CurrentChange = ::CONTRAST;
+          }
+        }
+      }
+    }
+  }
   ////paint safety ranges
   // for ( unsigned i=0; i<ranges.size(); i++ )
   //{
@@ -473,9 +347,10 @@ void OccupancyMap::insertRanges(vector<RangeMeasurement> ranges,
   // if(endPixel.x() < 0) endPixel.x() = 0;
   // if(endPixel.y() < 0) endPixel.y() = 0;
   // if(endPixel.x() >= m_metaData.width) endPixel.x() = m_metaData.width - 1;
-  // if(endPixel.y() >= m_metaData.height) endPixel.y() = m_metaData.height - 1;
+  // if(endPixel.y() >= m_metaData.height) endPixel.y() = m_metaData.height -
+  // 1;
 
-  // drawLine ( m_CurrentChanges, startPixel, endPixel, SAFETY_BORDER );
+  // drawLine (  startPixel, endPixel, SAFETY_BORDER );
   //}
 
   // paint end pixels
@@ -513,14 +388,36 @@ void OccupancyMap::insertRanges(vector<RangeMeasurement> ranges,
         continue;
       }
       m_ChangedRegion.enclose(endPixel.x(), endPixel.y());
-      // paint free ranges
-      drawLine(m_CurrentChanges, sensorPixel, endPixel, ::FREE);
 
       if (!ranges[i].free)
       {
         unsigned offset = endPixel.x() + m_metaData.width * endPixel.y();
-        m_CurrentChanges[offset] = ::OCCUPIED;
+        if (ranges[i].range < 10)
+        {
+          m_MapPoints[offset].CurrentChange = ::OCCUPIED;
+        }
+        else
+        {
+          m_MapPoints[offset].CurrentChange = ::SAFETY_BORDER;
+        }
       }
+    }
+    lastEndPixel = endPixel;
+  }
+
+  // paint free pixels
+  for (unsigned i = 0; i < ranges.size(); i++)
+  {
+    Eigen::Vector2i endPixel = map_pixel[i];
+
+    if (endPixel != lastEndPixel)
+    {
+      if (endPixel.x() >= m_metaData.width || endPixel.x() < 0 ||
+          endPixel.y() >= m_metaData.height || endPixel.y() < 0)
+      {
+        continue;
+      }
+      drawLine(sensorPixel, endPixel, ::FREE);
     }
     lastEndPixel = endPixel;
   }
@@ -532,21 +429,6 @@ void OccupancyMap::insertRanges(vector<RangeMeasurement> ranges,
   computeOccupancyProbabilities();
   if (need_x_left + need_x_right + need_y_down + need_y_up > 0)
   {
-    // keep square aspect ration till homer_gui can handle other maps
-    // int need_x = need_x_left + need_x_right;
-    // int need_y = need_y_up + need_y_down;
-    // if(need_x > need_y)
-    //{
-    // need_y_down += need_x - need_y;
-    //}
-    // else if (need_y > need_x)
-    //{
-    // need_x_right += need_y - need_x;
-    //}
-
-    ROS_INFO_STREAM("new map size!");
-    ROS_INFO_STREAM(" " << need_x_left << " " << need_y_up << " "
-                        << need_x_right << " " << need_y_down);
     changeMapSize(need_x_left, need_y_up, need_x_right, need_y_down);
   }
 }
@@ -577,9 +459,9 @@ double OccupancyMap::evaluateByContrast()
     for (int x = m_ExploredRegion.minX(); x <= m_ExploredRegion.maxX(); x++)
     {
       int i = x + y * m_metaData.width;
-      if (m_MeasurementCount[i] > 1)
+      if (m_MapPoints[i].MeasurementCount > 1)
       {
-        int prob = m_OccupancyProbability[i] * 100;
+        int prob = m_MapPoints[i].OccupancyProbability * 100;
         if (prob != NOT_SEEN_YET)  // ignore not yet seen cells
         {
           contrastSum += contrastFromProbability(prob);
@@ -593,6 +475,32 @@ double OccupancyMap::evaluateByContrast()
     return ((contrastSum / contrastCnt) * 100);
   }
   return (0);
+}
+
+tf::StampedTransform OccupancyMap::getLaserTransform(std::string frame_id)
+{
+  if (m_savedTransforms.find(frame_id) != m_savedTransforms.end())
+  {
+    return m_savedTransforms[frame_id];
+  }
+  else
+  {
+    try
+    {
+      m_tfListener.waitForTransform("/base_link", frame_id, ros::Time(0),
+                                    ros::Duration(0.2));
+      m_tfListener.lookupTransform("/base_link", frame_id, ros::Time(0),
+                                   m_savedTransforms[frame_id]);
+      return m_savedTransforms[frame_id];
+    }
+    catch (tf::TransformException ex)
+    {
+      ROS_ERROR_STREAM(ex.what());
+      ROS_ERROR_STREAM("need transformation from base_link to laser!");
+    }
+  }
+
+  return tf::StampedTransform();
 }
 
 vector<MeasurePoint>
@@ -619,7 +527,7 @@ OccupancyMap::getMeasurePoints(sensor_msgs::LaserScanConstPtr laserData)
       pin.setY(sin(alpha) * laserData->ranges[i]);
       pin.setZ(0);
 
-      pout = m_laserTransform * pin;
+      pout = getLaserTransform(laserData->header.frame_id) * pin;
 
       Point2D hitPos(pout.x(), pout.y());
 
@@ -634,19 +542,15 @@ OccupancyMap::getMeasurePoints(sensor_msgs::LaserScanConstPtr laserData)
           p.hitPos = lastHitPos;
           p.borderType = RightBorder;
           result.push_back(p);
-          p.hitPos = hitPos;
           p.borderType = LeftBorder;
-          result.push_back(p);
-          lastUsedHitPos = hitPos;
         }
         else
         {
-          // save current point
-          p.hitPos = hitPos;
           p.borderType = NoBorder;
-          result.push_back(p);
-          lastUsedHitPos = hitPos;
         }
+        p.hitPos = hitPos;
+        result.push_back(p);
+        lastUsedHitPos = hitPos;
       }
       lastHitPos = hitPos;
     }
@@ -679,6 +583,7 @@ OccupancyMap::getMeasurePoints(sensor_msgs::LaserScanConstPtr laserData)
 
     CVec2 normal = diff.rotate(Math::Pi * 0.5);
     normal.normalize();
+    result[i].normal = normal;
     normal *= m_metaData.resolution * sqrt(2.0) * 10.0;
 
     result[i].frontPos = result[i].hitPos + normal;
@@ -690,8 +595,10 @@ OccupancyMap::getMeasurePoints(sensor_msgs::LaserScanConstPtr laserData)
 float OccupancyMap::computeScore(Pose robotPose,
                                  std::vector<MeasurePoint> measurePoints)
 {
-  // This is a very simple implementation, using only the end point of the beam.
-  // For every beam the end cell is computed and tested if the cell is occupied.
+  // This is a very simple implementation, using only the end point of the
+  // beam.
+  // For every beam the end cell is computed and tested if the cell is
+  // occupied.
   unsigned lastOffset = 0;
   unsigned hitOffset = 0;
   unsigned frontOffset = 0;
@@ -717,7 +624,7 @@ float OccupancyMap::computeScore(Pose robotPose,
 
     // avoid multiple measuring of same pixel or unknown pixel
     if ((hitOffset == lastOffset) || (hitOffset >= unsigned(m_ByteSize)) ||
-        (m_MeasurementCount[hitOffset] == 0))
+        (m_MapPoints[hitOffset].MeasurementCount == 0))
     {
       continue;
     }
@@ -738,21 +645,19 @@ float OccupancyMap::computeScore(Pose robotPose,
       frontOffset = frontPixel.x() + m_metaData.width * frontPixel.y();
 
       if ((frontOffset >= unsigned(m_ByteSize)) ||
-          (m_MeasurementCount[frontOffset] == 0))
+          (m_MapPoints[frontOffset].MeasurementCount == 0))
       {
         continue;
       }
     }
 
     lastOffset = hitOffset;
-    // fittingFactor += m_SmoothOccupancyProbability[ offset ];
-    fittingFactor += m_OccupancyProbability[hitOffset];
+    fittingFactor += m_MapPoints[hitOffset].OccupancyProbability;
   }
   return fittingFactor;
 }
 
-template <class DataT>
-void OccupancyMap::drawLine(DataT* data, Eigen::Vector2i& startPixel,
+void OccupancyMap::drawLine(Eigen::Vector2i& startPixel,
                             Eigen::Vector2i& endPixel, char value)
 {
   // bresenham algorithm
@@ -805,14 +710,17 @@ void OccupancyMap::drawLine(DataT* data, Eigen::Vector2i& startPixel,
     {
       continue;
     }
-    if (data[index] == NO_CHANGE)
+    if (m_MapPoints[index].CurrentChange == ::NO_CHANGE ||
+        m_MapPoints[index].CurrentChange == ::FREE)
     {
-      data[index] = value;
+      m_MapPoints[index].CurrentChange = value;
     }
-    /*    if ( data[index] == OCCUPIED || data[index] == SAFETY_BORDER )
-        {
-          return;
-        }*/
+    if (m_MapPoints[index].CurrentChange == ::OCCUPIED ||
+        m_MapPoints[index].CurrentChange == ::SAFETY_BORDER ||
+        m_MapPoints[index].CurrentChange == ::CONTRAST)
+    {
+      return;
+    }
     xerr += dx;
     yerr += dy;
     if (xerr > dist)
@@ -837,23 +745,18 @@ void OccupancyMap::applyChanges()
          x++)
     {
       int i = x + yOffset;
-      if ((m_CurrentChanges[i] == ::FREE ||
-           m_CurrentChanges[i] == ::OCCUPIED) &&
-          m_MeasurementCount[i] < SHRT_MAX)
+
+      if ((m_MapPoints[i].CurrentChange == ::FREE ||
+           m_MapPoints[i].CurrentChange == ::OCCUPIED ||
+           m_MapPoints[i].CurrentChange == ::CONTRAST) &&
+          m_MapPoints[i].MeasurementCount < SHRT_MAX)
       {
-        m_MeasurementCount[i]++;
+        m_MapPoints[i].MeasurementCount++;
       }
-      if (m_CurrentChanges[i] == ::OCCUPIED && m_OccupancyCount[i] < USHRT_MAX)
+      if (m_MapPoints[i].CurrentChange == ::OCCUPIED &&
+          m_MapPoints[i].OccupancyCount < SHRT_MAX)
       {
-        // if(m_MeasurementCount[x + m_metaData.width * (y+1)] > 1)
-        // m_MeasurementCount[x + m_metaData.width * (y+1)]++;
-        // if(m_MeasurementCount[x + m_metaData.width * (y-1)] > 1)
-        // m_MeasurementCount[x + m_metaData.width * (y-1)]++;
-        // if(m_MeasurementCount[i-1] > 1)
-        // m_MeasurementCount[i-1]++;
-        // if(m_MeasurementCount[i+1] > 1)
-        // m_MeasurementCount[i+1]++;
-        m_OccupancyCount[i]++;
+        m_MapPoints[i].OccupancyCount += 4;
       }
     }
   }
@@ -864,8 +767,8 @@ void OccupancyMap::applyChanges()
          x++)
     {
       int i = x + yOffset;
-      if (m_OccupancyCount[i] > m_MeasurementCount[i])
-        m_OccupancyCount[i] = m_MeasurementCount[i];
+      if (m_MapPoints[i].OccupancyCount > m_MapPoints[i].MeasurementCount)
+        m_MapPoints[i].OccupancyCount = m_MapPoints[i].MeasurementCount;
     }
   }
 }
@@ -881,7 +784,7 @@ void OccupancyMap::clearChanges()
     for (int x = m_ChangedRegion.minX(); x <= m_ChangedRegion.maxX(); x++)
     {
       int i = x + yOffset;
-      m_CurrentChanges[i] = NO_CHANGE;
+      m_MapPoints[i].CurrentChange = NO_CHANGE;
     }
   }
   m_ChangedRegion =
@@ -894,12 +797,12 @@ void OccupancyMap::incrementMeasurementCount(Eigen::Vector2i p)
   {
     return;
   }
-  unsigned index = p.x() + m_metaData.width * p.y();
-  if (m_CurrentChanges[index] == NO_CHANGE &&
-      m_MeasurementCount[index] < USHRT_MAX)
+  unsigned i = p.x() + m_metaData.width * p.y();
+  if (m_MapPoints[i].CurrentChange == NO_CHANGE &&
+      m_MapPoints[i].MeasurementCount < USHRT_MAX)
   {
-    m_CurrentChanges[index] = ::FREE;
-    m_MeasurementCount[index]++;
+    m_MapPoints[i].CurrentChange = ::FREE;
+    m_MapPoints[i].MeasurementCount++;
   }
 }
 
@@ -909,34 +812,28 @@ void OccupancyMap::incrementOccupancyCount(Eigen::Vector2i p)
   {
     return;
   }
-  unsigned index = p.x() + m_metaData.width * p.y();
-  if ((m_CurrentChanges[index] == NO_CHANGE ||
-       m_CurrentChanges[index] == ::FREE) &&
-      m_MeasurementCount[index] < USHRT_MAX)
+  unsigned i = p.x() + m_metaData.width * p.y();
+  if ((m_MapPoints[i].CurrentChange == NO_CHANGE ||
+       m_MapPoints[i].CurrentChange == ::FREE) &&
+      m_MapPoints[i].MeasurementCount < USHRT_MAX)
   {
-    m_CurrentChanges[index] = ::OCCUPIED;
-    m_OccupancyCount[index]++;
+    m_MapPoints[i].CurrentChange = ::OCCUPIED;
+    m_MapPoints[i].OccupancyCount++;
   }
 }
 
 void OccupancyMap::scaleDownCounts(int maxCount)
 {
   clearChanges();
-  if (maxCount <= 0)
-  {
-    ROS_WARN("WARNING: argument maxCount is choosen to small, resetting map.");
-    memset(m_MeasurementCount, 0, m_ByteSize);
-    memset(m_OccupancyCount, 0, m_ByteSize);
-  }
-  else
+  if (maxCount > 0)
   {
     for (unsigned i = 0; i < m_ByteSize; i++)
     {
-      int scalingFactor = m_MeasurementCount[i] / maxCount;
+      int scalingFactor = m_MapPoints[i].MeasurementCount / maxCount;
       if (scalingFactor != 0)
       {
-        m_MeasurementCount[i] /= scalingFactor;
-        m_OccupancyCount[i] /= scalingFactor;
+        m_MapPoints[i].MeasurementCount /= scalingFactor;
+        m_MapPoints[i].OccupancyCount /= scalingFactor;
       }
     }
   }
@@ -956,7 +853,7 @@ void OccupancyMap::markRobotPositionFree()
   Eigen::Vector2i robotPixel = map_tools::toMapCoords(
       endPosWorld, m_metaData.origin, m_metaData.resolution);
 
-  int width = 0.35 / m_metaData.resolution;
+  int width = 0.25 / m_metaData.resolution;
   for (int i = robotPixel.y() - width; i <= robotPixel.y() + width; i++)
   {
     for (int j = robotPixel.x() - width; j <= robotPixel.x() + width; j++)
@@ -978,15 +875,17 @@ QImage OccupancyMap::getProbabilityQImage(int trancparencyThreshold,
   {
     for (int x = 0; x < m_metaData.width; x++)
     {
-      int index = x + y * m_metaData.width;
+      int i = x + y * m_metaData.width;
       int value = UNKNOWN;
-      if (m_MeasurementCount[index] > 0)
+      if (m_MapPoints[i].MeasurementCount > 0)
       {
-        value = static_cast<int>((1.0 - m_OccupancyProbability[index]) * 255);
-        if (m_MeasurementCount[index] < trancparencyThreshold)
+        value =
+            static_cast<int>((1.0 - m_MapPoints[i].OccupancyProbability) * 255);
+        if (m_MapPoints[i].MeasurementCount < trancparencyThreshold)
         {
-          value = static_cast<int>((0.75 + 0.025 * m_MeasurementCount[index]) *
-                                   (1.0 - m_OccupancyProbability[index]) * 255);
+          value = static_cast<int>(
+              (0.75 + 0.025 * m_MapPoints[i].MeasurementCount) *
+              (1.0 - m_MapPoints[i].OccupancyProbability) * 255);
         }
       }
       retImage.setPixel(x, y, qRgb(value, value, value));
@@ -1009,17 +908,17 @@ void OccupancyMap::getOccupancyProbabilityImage(vector<int8_t>& data,
     for (int x = m_ExploredRegion.minX(); x <= m_ExploredRegion.maxX(); x++)
     {
       int i = x + yOffset;
-      if (m_MeasurementCount[i] < 1)
+      if (m_MapPoints[i].MeasurementCount < 1)
       {
         continue;
       }
-      if (m_OccupancyProbability[i] == UNKNOWN_LIKELIHOOD)
+      if (m_MapPoints[i].OccupancyProbability == UNKNOWN_LIKELIHOOD)
       {
         data[i] = NOT_SEEN_YET;
       }
       else
       {
-        data[i] = (int)(m_OccupancyProbability[i] *
+        data[i] = (int)(m_MapPoints[i].OccupancyProbability *
                         99);  // TODO maybe - 2 (or *0.99 or smth)
       }
     }
@@ -1051,52 +950,28 @@ void OccupancyMap::applyMasking(const nav_msgs::OccupancyGrid::ConstPtr& msg)
       {
         case homer_mapnav_msgs::ModifyMap::BLOCKED:
         case homer_mapnav_msgs::ModifyMap::OBSTACLE:
-          // increase measure count of cells which were not yet visible to be
-          // able to modify unknown areas
-          if (m_MeasurementCount[i] == 0)
-            m_MeasurementCount[i] = 10;
+          // increase measure count of cells which were not yet
+          // visible to be able to modify unknown areas
+          if (m_MapPoints[i].MeasurementCount == 0)
+            m_MapPoints[i].MeasurementCount = 10;
 
-          m_OccupancyCount[i] = m_MeasurementCount[i];
-          m_OccupancyProbability[i] = 1.0;
+          m_MapPoints[i].OccupancyCount = m_MapPoints[i].MeasurementCount;
+          m_MapPoints[i].OccupancyProbability = 1.0;
           m_ExploredRegion.enclose(x, y);
           break;
         case homer_mapnav_msgs::ModifyMap::FREE:
           // see comment above
-          if (m_MeasurementCount[i] == 0)
-            m_MeasurementCount[i] = 10;
+          if (m_MapPoints[i].MeasurementCount == 0)
+            m_MapPoints[i].MeasurementCount = 10;
 
-          m_OccupancyCount[i] = 0;
-          m_OccupancyProbability[i] = 0.0;
+          m_MapPoints[i].OccupancyCount = 0;
+          m_MapPoints[i].OccupancyProbability = 0.0;
           m_ExploredRegion.enclose(x, y);
           break;
         case homer_mapnav_msgs::ModifyMap::HIGH_SENSITIV:
-          m_HighSensitive[i] = 1;
+          m_MapPoints[i].HighSensitive = 1;
           break;
       }
     }
-  }
-}
-
-void OccupancyMap::cleanUp()
-{
-  if (m_OccupancyProbability)
-  {
-    delete[] m_OccupancyProbability;
-  }
-  if (m_MeasurementCount)
-  {
-    delete[] m_MeasurementCount;
-  }
-  if (m_OccupancyCount)
-  {
-    delete[] m_OccupancyCount;
-  }
-  if (m_CurrentChanges)
-  {
-    delete[] m_CurrentChanges;
-  }
-  if (m_HighSensitive)
-  {
-    delete[] m_HighSensitive;
   }
 }

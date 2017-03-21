@@ -1,8 +1,10 @@
 #ifndef PARTICLEFILTER_H
 #define PARTICLEFILTER_H
 
+#include <homer_nav_libs/Math/Transformation2D.h>
 #include <limits.h>
 #include <omp.h>
+#include <sensor_msgs/LaserScan.h>
 #include <cmath>
 #include <iostream>
 
@@ -105,9 +107,10 @@ protected:
    * to are used as source,
    * m_LastList points to the destination list. The pointers m_CurrentList and
    * m_LastList are switched.
-   * The higher the weight of a particle, the more particles are drawn (copied)
-   * from this particle.
-   * The weight remains untouched, because measure() will be called afterwards.
+   * The higher the weight of a particle, the more particles are drawn
+   * (copied) from this particle.
+   * The weight remains untouched, because measure() will be called
+   * afterwards.
    * This method only works on a sorted m_CurrentList, therefore sort() is
    * called first.
    */
@@ -117,13 +120,13 @@ protected:
    * This method drifts the particles (second step of a filter process).
    * Has to be implemented in sub-classes (pure virtual function).
    */
-  virtual void drift() = 0;
+  virtual void drift(Transformation2D odoTrans) = 0;
 
   /**
    * This method has to be implemented in sub-classes. It is used to determine
    * the weight of each particle.
    */
-  virtual void measure() = 0;
+  virtual void measure(sensor_msgs::LaserScanPtr laserData) = 0;
 
   /**
    * These two pointers point to m_ParticleListOne and to m_ParticleListTwo.

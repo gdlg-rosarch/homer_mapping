@@ -65,18 +65,14 @@ public:
    * as measurement and is used to weight the particles.
    * @param currentPoseOdometry Odometry data of time t.
    * @param laserData msg containing the laser measurement.
-   * @param measurementTime Time stamp of the measurement.
-   * @param filterDurationTime Returns the time that the filtering needed
    */
-  void filter(Pose currentPoseOdometry,
-              sensor_msgs::LaserScanConstPtr laserData,
-              ros::Time measurementTime, ros::Duration& filterDuration);
+  void filter(Transformation2D trans, sensor_msgs::LaserScanConstPtr laserData);
 
   /**
    * @return The Pose of the most important particle (particle with highest
    * weight).
    */
-  Pose getLikeliestPose(ros::Time poseTime = ros::Time::now());
+  Pose getLikeliestPose();
 
   /**
    * This method can be used to retrieve the most likely map that is stored by
@@ -84,11 +80,6 @@ public:
    * @return Pointer to the most likely occupancy map.
    */
   OccupancyMap* getLikeliestMap() const;
-
-  /**
-   * This function prints out the list of particles to stdout via cout.
-   */
-  void printParticles() const;
 
   void resetHigh();
 
@@ -115,8 +106,8 @@ public:
 
   /**
    * Computes and sets the new value for m_Alpha4.
-   * @param  mPerDegree Translation error while rotating (see class constructor
-   * for details)
+   * @param  mPerDegree Translation error while rotating (see class
+   * constructor for details)
    */
   void setTranslationErrorRotating(float mPerDegree);
 
@@ -126,14 +117,6 @@ public:
    * details)
    */
   void setMoveJitterWhileTurning(float mPerDegree);
-
-  /**
-   * Sets a new minimal size of a cluster of scan points which is considered in
-   * scan matching.
-   * @param  clusterSize Minimal size of a cluster in mm of scan points which is
-   * considered in scan matching.
-   */
-  void setScanMatchingClusterSize(float clusterSize);
 
   /**
    * Sets whether the map is updated or just used for self-localization.
@@ -158,12 +141,12 @@ public:
                     double scatterVarTheta = 0.0);
 
   /**
-   * @return Vector of current particle poses. The vector is sorted according to
-   * the weights of the
+   * @return Vector of current particle poses. The vector is sorted according
+   * to the weights of the
    * particles. The pose of the particle with the highest value is the first
    * element of the vector.
    */
-  std::vector<Pose>* getParticlePoses() const;
+  std::vector<Pose> getParticlePoses() const;
 
   /**
   * @return vector of all particles
@@ -171,8 +154,8 @@ public:
   std::vector<SlamParticle*>* getParticles() const;
 
   /**
-   * @return Vector of current particle weights. The vector is sorted by weight,
-   * highest weight first.
+   * @return Vector of current particle weights. The vector is sorted by
+   * weight, highest weight first.
    */
   std::vector<float> getParticleWeights() const;
 
@@ -183,20 +166,22 @@ public:
    * @param The number of treated particles.
    * @param[out] poseVarianceX The variance of particle poses in x direction.
    * @param[out] poseVarianceY The variance of particle poses in y direction.
+   * @param[out] poseVarianceT The variance of particle poses in T rotation.
    */
   void getPoseVariances(int particleNum, float& poseVarianceX,
-                        float& poseVarianceY);
+                        float& poseVarianceY, float& poseVarianceT);
 
   /**
-   * This method reduces the number of particles used in this SlamFilter to the
-   * given value.
+   * This method reduces the number of particles used in this SlamFilter to
+   * the given value.
    * @param newParticleNumber The new number of particles
    */
   void reduceParticleNumber(int newParticleNumber);
 
   /**
    * This method returns the contrast of the occupancy grid
-   * @return Contrast value from 0 (no contrast) to 1 (max. contrast) of the map
+   * @return Contrast value from 0 (no contrast) to 1 (max. contrast) of the
+   * map
    */
   double evaluateByContrast();
 
@@ -218,8 +203,8 @@ private:
   /**
    * This method generates Gauss-distributed random variables with the given
    * variance. The computation
-   * method is the Polar Method that is described in the book "A First Course on
-   * Probability" by Sheldon Ross.
+   * method is the Polar Method that is described in the book "A First Course
+   * on Probability" by Sheldon Ross.
    * @param variance The variance for the Gauss-distribution that is used to
    * generate the random variable.
    * @return A random variable that is N(0, variance) distributed.
@@ -230,19 +215,13 @@ private:
    * This method drifts the particles according to the last two odometry
    * readings (time t-1 and time t).
    */
-  void drift();
+  void drift(Transformation2D odoTrans);
 
   /**
    * This method weightens each particle according to the given laser
    * measurement in m_LaserData.
    */
-  void measure();
-
-  /**
-   * This method updates the map by inserting the current laser measurement at
-   * the pose of the likeliest particle.
-   */
-  void updateMap();
+  void measure(sensor_msgs::LaserScanPtr laserData);
 
   /**
    * For weightening the particles, the filter needs a map.
@@ -252,21 +231,10 @@ private:
   OccupancyMap* m_OccupancyMap;
 
   /**
-   * threshold values for when the map will be updated.
-   * The map is only updated when the robot has turned a minimal angle
-   * (m_UpdateMinMoveAngle in radiants),
-   * has moved a minimal distance (m_UpdateMinMoveDistance in m) or a maximal
-   * time has passed (m_MaxUpdateInterval)
-   */
-  float m_UpdateMinMoveAngle;
-  float m_UpdateMinMoveDistance;
-  ros::Duration m_MaxUpdateInterval;
-
-  /**
    * This variable holds the rotation error that the robot makes while it is
    * rotating.
-   * Has to be given in percent. Example: robot makes errors of 3 degrees while
-   * making a 60 degrees
+   * Has to be given in percent. Example: robot makes errors of 3 degrees
+   * while making a 60 degrees
    * move -> error is 5% -> rotationErrorRotating = 5)
    */
   float m_Alpha1;
@@ -279,21 +247,22 @@ private:
   float m_Alpha2;
 
   /**
-   * This variable holds the translation error that the robot makes while it is
-   * translating.
+   * This variable holds the translation error that the robot makes while it
+   * is translating.
    * Has to be given in percent.
    */
   float m_Alpha3;
 
   /**
-   * This variable holds the translation error that the robot makes while it is
-   * rotating.
+   * This variable holds the translation error that the robot makes while it
+   * is rotating.
    * This error only carries weight, if a translation es performed at the same
    * time.
    * See also m_Alpha5.
-   * Has to be given in milimeters per degree. Example: Robot makes a turn of 10
-   * degrees and moves its
-   * center unintentional 15 mm. -> translationErrorRotating = 15.0 / 10.0 = 1.5
+   * Has to be given in milimeters per degree. Example: Robot makes a turn of
+   * 10 degrees and moves its
+   * center unintentional 15 mm. -> translationErrorRotating = 15.0 / 10.0 =
+   * 1.5
    */
   float m_Alpha4;
 
@@ -305,53 +274,20 @@ private:
   float m_Alpha5;
 
   /**
-   * The maximal rotation if mapping is performed. If the rotation is bigger,
-   * mapping is interrupted.
-   * This value may depend on the computing power, because it is influenced by
-   * the size of time intervals of mapping.
-   */
-  float m_MaxRotationPerSecond;
-
-  /**
-   * Last laser data.
-   */
-  sensor_msgs::LaserScanPtr m_CurrentLaserData;
-
-  /**
-   * Last two odometry measurements.
-   */
-  Pose m_ReferencePoseOdometry;
-  Pose m_CurrentPoseOdometry;
-
-  /**
-   * Time stamp of the last sensor measurement.
-   */
-  ros::Time m_ReferenceMeasurementTime;
-
-  /**
    * True if it is the first run of SlamFilter, false otherwise.
    */
   bool m_FirstRun;
 
   /**
-   * This variabe is true, if the SlamFilter is used for mapping and updates the
-   * map,
+   * This variabe is true, if the SlamFilter is used for mapping and updates
+   * the map,
    * false if it is just used for self-localization.
    */
   bool m_DoMapping;
 
-  /** Points used in last measure() step */
-  vector<MeasurePoint> m_MeasurePoints;
-
-  /// Pose of robot during last map update
-  Pose m_LastUpdatePose;
-
-  tf::Transform m_latestTransform;
-
   /**
    *  Time stamp of the last particle filter step
    */
-  ros::Time m_LastUpdateTime;
 
   ros::Time m_LastMoveTime;
 

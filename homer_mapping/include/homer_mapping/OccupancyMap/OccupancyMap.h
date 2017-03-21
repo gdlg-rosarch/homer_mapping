@@ -1,22 +1,25 @@
 #ifndef OCCUPANCYMAP_H
 #define OCCUPANCYMAP_H
 
-#include <iostream>
-#include <list>
-#include <string>
-#include <vector>
-
-#include <Eigen/Geometry>
-
+#include <homer_mapnav_msgs/ModifyMap.h>
 #include <homer_nav_libs/Math/Box2D.h>
+#include <homer_nav_libs/Math/Math.h>
 #include <homer_nav_libs/Math/Point2D.h>
 #include <homer_nav_libs/Math/Pose.h>
-
 #include <nav_msgs/MapMetaData.h>
 #include <nav_msgs/OccupancyGrid.h>
-#include <tf/transform_listener.h>
-
+#include <ros/ros.h>
 #include <sensor_msgs/LaserScan.h>
+#include <tf/transform_listener.h>
+#include <Eigen/Geometry>
+#include <QtGui/QImage>
+#include <cmath>
+#include <fstream>
+#include <iostream>
+#include <list>
+#include <sstream>
+#include <string>
+#include <vector>
 
 class QImage;
 
@@ -36,6 +39,7 @@ struct RangeMeasurement
 {
   geometry_msgs::Point sensorPos;
   geometry_msgs::Point endPos;
+  float range;
   bool free;
 };
 
@@ -50,6 +54,19 @@ enum BorderType
   RightBorder
 };
 
+const float UNKNOWN_LIKELIHOOD = 0.3;
+
+// Flags of current changes //
+const char NO_CHANGE = 0;
+const char OCCUPIED = 1;
+const char FREE = 2;
+// the safety border around occupied pixels which is left unchanged
+const char SAFETY_BORDER = 3;
+const char CONTRAST = 4;
+///////////////////////////////
+
+// assumed laser measure count for loaded maps
+const int LOADED_MEASURECOUNT = 10;
 /**
  * Structure to store a measurement point for computeLaserScanProbability()
  * @param hitPos Position of measured obstacle (robot coordinates)
@@ -64,6 +81,7 @@ struct MeasurePoint
   Point2D hitPos;
   Point2D frontPos;
   BorderType borderType;
+  CVec2 normal;
 };
 
 /**
@@ -106,9 +124,7 @@ public:
   /**
    * Constructor for a loaded map.
    */
-  OccupancyMap(float*& occupancyProbability, geometry_msgs::Pose origin,
-               float resolution, int width, int height,
-               Box2D<int> exploredRegion);
+  OccupancyMap(const nav_msgs::OccupancyGrid::ConstPtr& msg);
 
   /**
    * Copy constructor, copies all members inclusive the arrays that lie behind
@@ -118,8 +134,8 @@ public:
   OccupancyMap(const OccupancyMap& occupancyMap);
 
   /**
-   * Method to init all members with default values from the configuration file.
-   * All arrays are initialized.
+   * Method to init all members with default values from the configuration
+   * file. All arrays are initialized.
    */
   void initMembers();
 
@@ -192,8 +208,8 @@ public:
    * @param robotPose The pose of the robot
    * @return The "fitting factor". The higher the factor, the better the
    * fitting.
-   *         This factor is NOT normalized, it is a positive float between 0 and
-   * FLOAT_MAX
+   *         This factor is NOT normalized, it is a positive float between 0
+   * and FLOAT_MAX
    */
   float computeScore(Pose robotPose, std::vector<MeasurePoint> measurePoints);
 
@@ -214,8 +230,8 @@ public:
 
   /**
    * Returns an "image" of occupancy probability image.
-   * @param[out] data vector containing occupancy probabilities. 0 = free, 100 =
-   * occupied, -1 = NOT_KNOWN
+   * @param[out] data vector containing occupancy probabilities. 0 = free, 100
+   * = occupied, -1 = NOT_KNOWN
    * @param[out] width Width of data array
    * @param[out] height Height of data array
    * @param[out] resolution Resolution of the map (m_metaData.resolution)
@@ -240,7 +256,8 @@ public:
 
   /**
    * @brief This method computes the sharpness of the occupancy grid
-   * @return Contrast value from 0 (no contrast) to 1 (max. contrast) of the map
+   * @return Contrast value from 0 (no contrast) to 1 (max. contrast) of the
+   * map
    */
   double evaluateByContrast();
 
@@ -262,6 +279,8 @@ public:
 
   void changeMapSize(int x_add_left, int y_add_up, int x_add_right,
                      int y_add_down);
+
+  tf::StampedTransform getLaserTransform(std::string frame_id);
 
 protected:
   /**
@@ -299,9 +318,8 @@ protected:
     * @param endPixel ending coordinates of the beam
     * @param value The value with which the lines are marked.
     */
-  template <class DataT>
-  void drawLine(DataT* data, Eigen::Vector2i& startPixel,
-                Eigen::Vector2i& endPixel, char value);
+  void drawLine(Eigen::Vector2i& startPixel, Eigen::Vector2i& endPixel,
+                char value);
 
   /**
    * This method computes the values for m_OccupancyProbabilities from
@@ -322,8 +340,8 @@ protected:
   void resetChangedRegion();
 
   /**
-   * This method updates the values of m_MinChangeX, m_MaxChangeX, m_MinChangeY
-   * and m_MaxChangeY to current changes.
+   * This method updates the values of m_MinChangeX, m_MaxChangeX,
+   * m_MinChangeY and m_MaxChangeY to current changes.
    * The area around the current robot pose will be included to the changed
    * region.
    * @param robotPose The current pose of the robot.
@@ -331,8 +349,8 @@ protected:
   void updateChangedRegion(Pose robotPose);
 
   /**
-   * This method sets all values of m_MinChangeX, m_MaxChangeX, m_MinChangeY and
-   * m_MaxChangeY
+   * This method sets all values of m_MinChangeX, m_MaxChangeX, m_MinChangeY
+   * and m_MaxChangeY
     * to initial values so that the complete map will be processed.
    */
   void maximizeChangedRegion();
@@ -342,11 +360,6 @@ protected:
    * m_MinExploredY and m_MaxExploredY.
    */
   void resetExploredRegion();
-
-  /**
-   * Deletes all allocated members.
-   */
-  void cleanUp();
 
   /**
    * Stores the metadata of the map
@@ -380,13 +393,33 @@ protected:
   // Used for high Sensitive areas
   unsigned short* m_HighSensitive;
 
+  struct PixelValue
+  {
+    float OccupancyProbability;
+    unsigned short MeasurementCount;
+    unsigned short OccupancyCount;
+    unsigned char CurrentChange;
+    unsigned short HighSensitive;
+
+    PixelValue()
+    {
+      OccupancyProbability = UNKNOWN_LIKELIHOOD;
+      OccupancyCount = 0;
+      MeasurementCount = 0;
+      CurrentChange = NO_CHANGE;
+      HighSensitive = 0;
+    }
+  };
+
+  std::vector<PixelValue> m_MapPoints;
+
   /**
    * Store values from config files.
    */
   // minimum range classified as free in case of errorneous laser measurement
   float m_FreeReadingDistance;
-  // enables checking to avoid matching front- and backside of an obstacle, e.g.
-  // wall
+  // enables checking to avoid matching front- and backside of an obstacle,
+  // e.g. wall
   bool m_BacksideChecking;
   // leaves a small border around obstacles unchanged when inserting a laser
   // scan
@@ -416,7 +449,8 @@ protected:
   /**
    * ros transformation laser to base_link
    */
-  tf::StampedTransform m_laserTransform;
+  std::map<std::string, tf::StampedTransform> m_savedTransforms;
+
   tf::Transform m_latestMapTransform;
 };
 #endif
