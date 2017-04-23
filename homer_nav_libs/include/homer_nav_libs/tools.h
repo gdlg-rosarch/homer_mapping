@@ -266,12 +266,12 @@ geometry_msgs::Point laser_range_to_point(
   try
   {
     listener.transformPoint(to_frame, stamp, pin, "/map", pout);
-    return pout.point;
   }
   catch (tf::TransformException ex)
   {
-    // ROS_ERROR("%s",ex.what());
+    ROS_ERROR("%s",ex.what());
   }
+  return pout.point;
 }
 
 /**
