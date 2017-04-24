@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package>
   <name>homer_nav_libs</name>
-  <version>0.1.21</version>
+  <version>0.1.23</version>
   <description>The nav_libs package</description>
 
   <maintainer email="fpolster@uni-koblenz.de">Florian Polster</maintainer>
