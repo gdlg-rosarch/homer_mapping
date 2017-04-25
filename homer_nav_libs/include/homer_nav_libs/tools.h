@@ -384,18 +384,16 @@ laser_msg_to_points(const sensor_msgs::LaserScan::ConstPtr& scan,
 * @return float distance to nearest Point
 */
 float get_max_move_distance(std::vector<geometry_msgs::Point> points,
-                            float min_x, float min_y)
+                            float min_x, float max_y)
 {
   float minDistance = 30;
   for (unsigned int i = 0; i < points.size(); i++)
   {
-    if (std::fabs(points[i].y) < min_y && points[i].x > min_x)
+    if (std::fabs(points[i].y) < max_y && points[i].x > min_x)
     {
-      float distance =
-          sqrt((points[i].x * points[i].x) + (points[i].y * points[i].y));
-      if (distance < minDistance)
+      if (points[i].x < minDistance)
       {
-        minDistance = distance;
+        minDistance = points[i].x;
       }
     }
   }

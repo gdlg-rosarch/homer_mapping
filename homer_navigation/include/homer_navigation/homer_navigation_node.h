@@ -12,8 +12,6 @@
 
 #include <tf/transform_listener.h>
 
-#include <homer_robbie_architecture/Architecture/StateMachine/StateMachine.h>
-
 #include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/Twist.h>
 #include <homer_mapnav_msgs/GetPointsOfInterest.h>
@@ -54,6 +52,8 @@ public:
     FINAL_TURN
   };
 
+  ProcessState m_state;
+
   /**
    * The constructor
    */
@@ -90,11 +90,21 @@ protected:
   /** @brief Is called when all modules are loaded and thread has started. */
   virtual void init();
 
+  void initExplorer();
+
   void initNewTarget();
 
 private:
   /** @brief Start navigation to m_Target on  last_map_data_ */
   void startNavigation();
+
+  float getMinLaserDistance();
+  void followPath();
+  void avoidingCollision();
+  void finalTurn();
+  bool checkWaypoints();
+  bool updateSpeeds();
+  bool checkForObstacles();
 
   geometry_msgs::Point
   calculateMeanPoint(const std::vector<geometry_msgs::Point>& points);
@@ -197,16 +207,10 @@ private:
   /// @brief Worker instances
   Explorer* m_explorer;
 
-  /// @brief State machine
-  StateMachine<ProcessState> m_MainMachine;
-
   /// @brief Navigation options & data
 
   /** list of waypoints subsampled from m_PixelPath */
   std::vector<geometry_msgs::PoseStamped> m_waypoints;
-
-  /** Path planned by Explorer, pixel accuracy */
-  std::vector<Eigen::Vector2i> m_pixel_path;
 
   /** target point */
   geometry_msgs::Point m_target_point;
@@ -288,6 +292,8 @@ private:
   float m_check_path_max_distance;
   ros::Time m_last_check_path_time;
 
+  ros::Time m_unreachable_delay;
+
   /** do not replan if lisa avoids an obstacle, instead send target
    * unreachable*/
   bool m_stop_before_obstacle;
@@ -302,7 +308,6 @@ private:
   float m_waypoint_radius_factor;
 
   float m_distance_to_target;
-  float m_act_speed;
   float m_angular_avoidance;
 
   float m_map_speed_factor;
@@ -321,6 +326,8 @@ private:
   bool m_path_reaches_target;
   bool m_initial_path_reaches_target;
   int m_unknown_threshold;
+
+  geometry_msgs::Twist m_cmd_vel;
 
   /** last map data */
   nav_msgs::OccupancyGrid::ConstPtr m_map;
@@ -346,12 +353,10 @@ private:
   // publishers
   ros::Publisher m_cmd_vel_pub;
   ros::Publisher m_target_reached_string_pub;
-  // ros::Publisher  m_target_reached_empty_pub;
   ros::Publisher m_target_unreachable_pub;
   ros::Publisher m_path_pub;
   ros::Publisher m_ptu_center_world_point_pub;
   ros::Publisher m_set_pan_tilt_pub;
-  ros::Publisher m_debug_pub;
 
   // service clients
   ros::ServiceClient m_get_POIs_client;
