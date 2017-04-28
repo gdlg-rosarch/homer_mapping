@@ -145,6 +145,7 @@ void HomerNavigationNode::init()
   m_last_check_path_time = ros::Time::now();
   m_unreachable_delay = ros::Time::now();
   m_ignore_scan = "";
+  m_fast_path_planning = false;
 
   m_cmd_vel = geometry_msgs::Twist();
 
@@ -226,14 +227,13 @@ void HomerNavigationNode::setExplorerMap()
   }
   if (m_fast_path_planning)
   {
-    // TODO check why not functional
-    // maskMap(temp_map);
+    maskMap(temp_map);
   }
   m_explorer->setOccupancyMap(
       boost::make_shared<nav_msgs::OccupancyGrid>(temp_map));
 }
 
-void HomerNavigationNode::calculatePath()
+void HomerNavigationNode::calculatePath(bool setMap)
 {
   if (!m_explorer)
   {
@@ -244,7 +244,10 @@ void HomerNavigationNode::calculatePath()
     return;
   }
 
-  setExplorerMap();
+  if (setMap)
+  {
+    setExplorerMap();
+  }
   m_explorer->setStart(map_tools::toMapCoords(m_robot_pose.position, m_map));
 
   bool success;
@@ -311,12 +314,29 @@ void HomerNavigationNode::startNavigation()
   {
     return;
   }
+  // CHECK IF THERE IS A DIRECT PATH TO THE TARGET
+  if (m_fast_path_planning)
+  {
+    m_waypoints.clear();
+
+    geometry_msgs::PoseStamped poseStamped = geometry_msgs::PoseStamped();
+    poseStamped.header.frame_id = "/map";
+    poseStamped.pose.position = m_target_point;
+    poseStamped.pose.orientation.w = 1;
+    m_waypoints.push_back(poseStamped);
+
+    if (!obstacleOnPath())
+    {
+      m_state = FOLLOWING_PATH;
+      return;
+    }
+  }
 
   ROS_INFO_STREAM("Distance to target still too large ("
                   << m_distance_to_target
                   << "m; requested: " << m_desired_distance << "m)");
-  setExplorerMap();
 
+  setExplorerMap();
   // check if there still exists a path to the original target
   if (m_avoided_collision && m_initial_path_reaches_target &&
       m_stop_before_obstacle)
@@ -375,7 +395,8 @@ void HomerNavigationNode::startNavigation()
   {
     m_explorer->setTarget(new_target_approx);
     m_state = FOLLOWING_PATH;
-    calculatePath();
+
+    calculatePath(false);
   }
 }
 
@@ -447,6 +468,33 @@ bool HomerNavigationNode::isTargetPositionReached()
   }
 }
 
+void HomerNavigationNode::filterScanPoints(
+    std::vector<geometry_msgs::Point>& points)
+{
+  std::vector<int> remove_list;
+  for (int i = 0; i < points.size(); i++)
+  {
+    bool found = false;
+    for (int j = i; j < points.size(); j++)
+    {
+      if (map_tools::distance(points[i], points[j]) < 0.03)
+      {
+        found = true;
+      }
+    }
+
+    if (!found)
+    {
+      remove_list.push_back(i);
+    }
+  }
+
+  for (int i = remove_list.size() - 1; i >= 0; i--)
+  {
+    points.erase(points.begin() + remove_list[i]);
+  }
+}
+
 geometry_msgs::Point HomerNavigationNode::calculateMeanPoint(
     const std::vector<geometry_msgs::Point>& points)
 {
@@ -472,6 +520,7 @@ bool HomerNavigationNode::obstacleOnPath()
     ROS_DEBUG_STREAM("no path found for finding an obstacle");
     return false;
   }
+
   std::vector<geometry_msgs::Point> obstacle_vec;
 
   for (auto const& scan : m_scan_map)
@@ -483,10 +532,22 @@ bool HomerNavigationNode::obstacleOnPath()
       scan_points = map_tools::laser_msg_to_points(
           scan.second, m_transform_listener, "/map");
 
-      for (unsigned i = 1; i < m_waypoints.size() - 1; i++)
+      filterScanPoints(scan_points);
+      geometry_msgs::Point lp;
+      geometry_msgs::Point p;
+
+      for (unsigned i = 0; i < m_waypoints.size(); i++)
       {
-        geometry_msgs::Point lp = m_waypoints.at(i - 1).pose.position;
-        geometry_msgs::Point p = m_waypoints.at(i).pose.position;
+        if (i == 0)
+        {
+          lp = m_robot_pose.position;
+          p = m_waypoints.at(i).pose.position;
+        }
+        else
+        {
+          lp = m_waypoints.at(i - 1).pose.position;
+          p = m_waypoints.at(i).pose.position;
+        }
         if (map_tools::distance(m_robot_pose.position, p) >
             m_check_path_max_distance * 2)
         {
@@ -498,7 +559,7 @@ bool HomerNavigationNode::obstacleOnPath()
           }
           else
           {
-            return false;
+            continue;
           }
         }
         for (int k = 0; k < 4; k++)
@@ -508,8 +569,7 @@ bool HomerNavigationNode::obstacleOnPath()
           t.y = lp.y + (p.y - lp.y) * k / 4.0;
           for (const auto& sp : scan_points)
           {
-            if (map_tools::distance(sp, t) <
-                m_AllowedObstacleDistance.first - m_map->info.resolution)
+            if (map_tools::distance(sp, t) < m_AllowedObstacleDistance.first)
             {
               if (map_tools::distance(m_robot_pose.position, sp) <
                   m_check_path_max_distance)
@@ -598,13 +658,12 @@ bool HomerNavigationNode::checkWaypoints()
 
   Eigen::Vector2i waypointPixel =
       map_tools::toMapCoords(m_waypoints[0].pose.position, m_map);
-  float obstacleDistanceMap = m_explorer->getObstacleTransform()->getValue(
-                                  waypointPixel.x(), waypointPixel.y()) *
-                              m_map->info.resolution;
+  float obstacleDistanceMap = getMinLaserDistance();
   float waypointRadius = m_waypoint_radius_factor * obstacleDistanceMap;
   float distanceToWaypoint =
       map_tools::distance(m_robot_pose.position, m_waypoints[0].pose.position);
 
+  waypointRadius = std::min((float)0.3, waypointRadius);
   if ((waypointRadius < m_map->info.resolution) || (m_waypoints.size() == 1))
   {
     waypointRadius = m_map->info.resolution;
@@ -677,7 +736,7 @@ bool HomerNavigationNode::updateSpeeds()
     }
   }
   // Angle is bigger than maximal driving angle
-  else if (fabs(angle) > m_max_drive_angle)
+  else if (std::fabs(angle) > m_max_drive_angle)
   {
     m_cmd_vel.linear.x = 0.0;
   }
@@ -702,32 +761,32 @@ bool HomerNavigationNode::updateSpeeds()
   // Normal speed calculation
   else
   {
-    float max_move_distance_speed =
+    std::map<std::string, float> m_min_speed_map;
+
+    m_min_speed_map["move_dist"] =
         m_max_move_speed * m_max_move_distance * m_obstacle_speed_factor;
-
-    float max_laser_speed =
+    m_min_speed_map["laser"] =
         getMinLaserDistance() * m_map_speed_factor * m_max_move_speed;
+    m_min_speed_map["waypoint"] = 1;
+    m_min_speed_map["target"] =
+        std::max((float)0.2, m_distance_to_target * m_distance_to_target *
+                                 m_target_distance_speed_factor);
+    m_min_speed_map["max_speed"] = m_max_move_speed;
 
-    float max_waypoint_speed = 1;
-    if (m_waypoints.size() > 1)
+    float new_speed = 200;
+    std::string mins = "";
+
+    for (auto& speed : m_min_speed_map)
     {
-      float angleToNextWaypoint =
-          std::fabs(angleToPointDeg(m_waypoints[1].pose.position));
-      double angleFactor = (1 - (angleToNextWaypoint / 180.0));
-      angleFactor *= angleFactor;
-      if (angleFactor < 0.9)
+      if (speed.second < new_speed)
       {
-        max_waypoint_speed = std::max(0.2, angleFactor * distanceToWaypoint *
-                                               m_waypoint_speed_factor);
+        new_speed = speed.second;
+        mins = speed.first;
       }
     }
 
-    float max_distance_to_target_speed = std::max(
-        (float)0.1, m_distance_to_target * m_target_distance_speed_factor);
+    ROS_DEBUG_STREAM("max speed " << new_speed << " because of " << mins);
 
-    float new_speed = std::min({ max_distance_to_target_speed, m_max_move_speed,
-                                 max_move_distance_speed, max_waypoint_speed,
-                                 max_laser_speed });
     // RAMP FOR SMOOTHER ACCELERATION
     if (new_speed < m_cmd_vel.linear.x)
     {
@@ -735,28 +794,22 @@ bool HomerNavigationNode::updateSpeeds()
     }
     else
     {
-      m_cmd_vel.linear.x += std::min(new_speed - m_cmd_vel.linear.x, 0.01);
+      m_cmd_vel.linear.x += std::min(new_speed - m_cmd_vel.linear.x, 0.3);
     }
   }
 
+  m_cmd_vel.linear.x *=
+      std::fabs((m_max_turn_speed - std::fabs(angle)) / m_max_turn_speed);
+
   // angular speed calculation
+  angle *= std::fabs(angle) * 3.0 + std::fabs(m_cmd_vel.linear.x / 2.0);
   if (angle < 0)
   {
     m_cmd_vel.angular.z = std::max(angle, -m_max_turn_speed);
-    // m_cmd_vel.linear.x = m_cmd_vel.linear.x + angle / 3.0;
-    // if (m_cmd_vel.linear.x < 0)
-    //{
-    // m_cmd_vel.linear.x = 0;
-    //}
   }
   else
   {
     m_cmd_vel.angular.z = std::min(angle, m_max_turn_speed);
-    // m_cmd_vel.linear.x = m_cmd_vel.linear.x - angle / 3.0;
-    // if (m_cmd_vel.linear.x < 0)
-    //{
-    // m_cmd_vel.linear.x = 0;
-    //}
   }
 
   ROS_DEBUG_STREAM("Driving & turning"
@@ -780,7 +833,7 @@ bool HomerNavigationNode::checkForObstacles()
             map_tools::distance(m_robot_pose.position, m_obstacle_position);
         if (!m_obstacle_on_path && distanceToObstacle < 1.0)
         {
-          stopRobot();
+          // stopRobot();
           calculatePath();
           return false;
         }
@@ -1165,8 +1218,9 @@ void HomerNavigationNode::maskMap(nav_msgs::OccupancyGrid& cmap)
   Eigen::Vector2i pose_pixel =
       map_tools::toMapCoords(m_robot_pose.position, m_map);
   Eigen::Vector2i target_pixel = map_tools::toMapCoords(m_target_point, m_map);
-  Eigen::Vector2i safe_pixel_distance(m_AllowedObstacleDistance.first * 4,
-                                      m_AllowedObstacleDistance.first * 4);
+  Eigen::Vector2i safe_pixel_distance(
+      m_AllowedObstacleDistance.first / m_map->info.resolution * 4,
+      m_AllowedObstacleDistance.first / m_map->info.resolution * 4);
   Eigen::AlignedBox2i planning_box;
   planning_box.extend(pose_pixel);
   planning_box.extend(target_pixel);
@@ -1241,10 +1295,6 @@ void HomerNavigationNode::mapCallback(
 {
   m_map = msg;
   initExplorer();
-  if (m_state != IDLE)
-  {
-    setExplorerMap();
-  }
 }
 
 void HomerNavigationNode::poseCallback(
@@ -1265,16 +1315,14 @@ void HomerNavigationNode::calcMaxMoveDist()
   std::string laser = "";
   for (auto d : m_max_move_distances)
   {
-    m_max_move_distance = std::min(m_max_move_distance, d.second);
-    laser = d.first;
+    if ((ros::Time::now() - m_scan_map[d.first]->header.stamp) <
+        ros::Duration(1))
+    {
+      m_max_move_distance = std::min(m_max_move_distance, d.second);
+      laser = d.first;
+    }
   }
-  ROS_DEBUG_STREAM("laser");
-  // if ((m_max_move_distance <= m_collision_distance &&
-  // std::fabs(m_cmd_vel.linear.x) > 0.1 && m_waypoints.size() > 1) ||
-  //(m_max_move_distance <= m_collision_distance_near_target &&
-  // std::fabs(m_cmd_vel.linear.x) > 0.1 && m_waypoints.size() == 1) ||
-  // m_max_move_distance <= 0.1)
-  if (m_max_move_distance < m_cmd_vel.linear.x)
+  if (m_max_move_distance < m_cmd_vel.linear.x || m_max_move_distance < 0.05)
   {
     if (m_state == FOLLOWING_PATH)
     {
@@ -1312,7 +1360,7 @@ void HomerNavigationNode::laserDataCallback(
           map_tools::get_max_move_distance(
               map_tools::laser_msg_to_points(msg, m_transform_listener, "/base_"
                                                                         "link"),
-              m_min_x, m_min_y);
+              m_min_x, m_AllowedObstacleDistance.first);
     }
     else
     {
@@ -1350,6 +1398,7 @@ void HomerNavigationNode::startNavigationCallback(
 void HomerNavigationNode::moveBaseSimpleGoalCallback(
     const geometry_msgs::PoseStamped::ConstPtr& msg)
 {
+  ros::Time start = ros::Time::now();
   if (msg->header.frame_id != "map")
   {
     tf::StampedTransform transform;
@@ -1415,6 +1464,7 @@ void HomerNavigationNode::moveBaseSimpleGoalCallback(
                   << "\nframe_id: " << msg->header.frame_id);
   initNewTarget();
   startNavigation();
+  ROS_INFO_STREAM("TIME: " << (ros::Time::now() - start).toSec());
 }
 
 void HomerNavigationNode::navigateToPOICallback(

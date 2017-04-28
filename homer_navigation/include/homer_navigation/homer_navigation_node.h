@@ -114,7 +114,7 @@ private:
   /** @brief calculate path from current robot position to target
    * approximation
    */
-  void calculatePath();
+  void calculatePath(bool setMap = true);
 
   void setExplorerMap();
 
@@ -153,6 +153,8 @@ private:
 
   bool isInIgnoreList(std::string frame_id);
 
+  void filterScanPoints(std::vector<geometry_msgs::Point>& points );
+
   /**
    * @brief Sets each cell of the map to -1 outside the bounding box
    *        containing the robot pose and the current target
@@ -175,6 +177,7 @@ private:
    * @return minimal angle needed to turn from angle 1 to angle 2 [-Pi..Pi]
    */
   static float minTurnAngle(float angle1, float angle2);
+
 
   /**
    * converts value from degree to radiant
