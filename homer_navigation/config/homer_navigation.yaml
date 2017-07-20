@@ -1,9 +1,9 @@
 /homer_navigation/safe_path_weight:               0.03  # factor weight for safer path in relation to shortest path
-/homer_navigation/waypoint_sampling_threshold:    2.0  # factor of how dense the path waypoints are sampled regarding the obstacle_distance of the last or next waypoint 
+/homer_navigation/waypoint_sampling_threshold:    1.0  # factor of how dense the path waypoints are sampled regarding the obstacle_distance of the last or next waypoint 
 /homer_navigation/frontier_safeness_factor:       1.0  # factor of min_allowed_obstacle_distance to an obstacle of a cell which is considered safe
 
 ### cost calculation parameters
-/homer_navigation/allowed_obstacle_distance/min:  0.3  # m robot must stay further away than this from obstacles
+/homer_navigation/allowed_obstacle_distance/min:  0.35  # m robot must stay further away than this from obstacles
 /homer_navigation/allowed_obstacle_distance/max:  5.0  # m not used at the moment
 /homer_navigation/safe_obstacle_distance/min:     1.0  # m if possible robot should move further away than this from obstacles
 /homer_navigation/safe_obstacle_distance/max:     1.3  # m further away than this from obstacles doesn't give a lesser cost addition
@@ -24,6 +24,7 @@
 /homer_navigation/max_turn_speed:                 0.9  # rad/s max turn velocity the navigation can send
 /homer_navigation/min_turn_speed:                 0.2  # rad/s min turn speed for Final Turn so the Robot doesn't stop turning
 /homer_navigation/max_drive_angle:                0.5  # rad threshold for driving and turning - if above that value only turn
+/homer_navigation/speed_ramp:                     0.1  # the maximal speed addition to the last driving speed in one calculation
 
 /homer_navigation/max_move_speed:                 0.9  # m/s   max move speed the navigation can send
 ### caution factors values near 0 mean high caution values greater values mean less caution
