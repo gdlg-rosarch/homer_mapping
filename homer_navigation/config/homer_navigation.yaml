@@ -23,16 +23,16 @@
 /homer_navigation/min_turn_angle:                 0.1 # rad values lower than this angle will let the navigation assume reaching the designated position   
 /homer_navigation/max_turn_speed:                 0.9  # rad/s max turn velocity the navigation can send
 /homer_navigation/min_turn_speed:                 0.2  # rad/s min turn speed for Final Turn so the Robot doesn't stop turning
-/homer_navigation/max_drive_angle:                0.5  # rad threshold for driving and turning - if above that value only turn
-/homer_navigation/speed_ramp:                     0.1  # the maximal speed addition to the last driving speed in one calculation
+/homer_navigation/max_drive_angle:                0.8  # rad threshold for driving and turning - if above that value only turn
+/homer_navigation/speed_ramp:                     0.2  # the maximal speed addition to the last driving speed in one calculation
 
 /homer_navigation/max_move_speed:                 0.9  # m/s   max move speed the navigation can send
 ### caution factors values near 0 mean high caution values greater values mean less caution
 ### if any factor equals 0 the robot can't follow paths !!
 /homer_navigation/map_speed_factor:               0.8 # factor for the max speed calculation of the obstacleDistancemap
-/homer_navigation/waypoint_speed_factor:          1.7 # factor for the max speed calculation with the distance to the next Waypoint
+/homer_navigation/waypoint_speed_factor:          0.8 # factor for the max speed calculation with the distance to the next Waypoint
 /homer_navigation/obstacle_speed_factor:          0.8  # factor for the max speed calculation with the last laser max movement distance
-/homer_navigation/target_distance_speed_factor:   1.3  # factor for the max speed calculation with the distance to target
+/homer_navigation/target_distance_speed_factor:   1.0  # factor for the max speed calculation with the distance to target
 
 /homer_navigation/callback_error_duration:        0.3  # s max duration between pose and laser callbacks before error handling is executed
 

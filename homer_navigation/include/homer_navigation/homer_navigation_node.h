@@ -145,8 +145,11 @@ private:
   /** @return Angle from robot_pose_ to point in degrees */
   int angleToPointDeg(geometry_msgs::Point point);
 
-  /** @brief Calculates current maximal backwards distance on map Data */
+  /** @brief Calculates if there is an obstacle behind the robot on the map - returns true if there is one**/
   bool backwardObstacle();
+
+  /** @brief Calculates if there is a obstacle on the map to the first waypoint - true if there is one */
+  bool mapObstacle();
 
   /** @brief stops the Robot */
   void stopRobot();
