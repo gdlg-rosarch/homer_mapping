@@ -1,0 +1,30 @@
+# The `driveTo` action navigates to an existing POI given by `goal_location`
+# up to a `distance_to_target`. Basically the `startNavigation` topic is wrapped
+# into a action.
+
+string goal_location # name of destination POI
+float32 distance_to_target # distance to destination POI
+bool suppress_speaking # toggles voice output, if false no debug speech is given else for starting action, target reached and target unreachable voice output is given
+bool skip_final_turn
+bool stop_before_obstacle
+bool plan_only_on_slam_map
+bool check_obstacle
+---
+int32 FAILED_TARGET_UNREACHABLE = 0
+int32 SUCCEEDED = 2
+
+int32 SMALL_OBSTACLE = 3
+int32 BIG_OBSTACLE = 4
+int32 NO_OBSTACLE = 6
+
+int32 result
+---
+
+int32 IDLE= 0
+int32 DRIVING_TO_GOAL_LOCATION= 1
+int32 FINISHED= 2
+
+float32 STEPS= 3
+
+float32 progress
+string feedback

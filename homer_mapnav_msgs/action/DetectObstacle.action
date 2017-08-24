@@ -1,0 +1,8 @@
+geometry_msgs/PointStamped location
+---
+int32 SMALL_OBSTACLE = 0
+int32 BIG_OBSTACLE = 1
+int32 NO_OBSTACLE = 2
+
+int32 result
+---
