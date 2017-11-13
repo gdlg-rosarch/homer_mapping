@@ -33,6 +33,15 @@ SlamNode::SlamNode(ros::NodeHandle* nh) : m_HyperSlamFilter(0)
   m_SLAMMapPublisher = nh->advertise<nav_msgs::OccupancyGrid>(
       "/homer_mapping/slam_map", 1, true);
 
+
+  bool base_fp_param;
+  if (nh->hasParam("/home_mapping/map_childof_base_footprint"))
+    if (ros::param::get("/homer_mapping/map_childof_base_footprint", base_fp_param))
+    {
+       m_UseBaseFootprint = base_fp_param;
+    }
+ else
+    m_UseBaseFootprint = false;
   init();
 }
 
@@ -154,9 +163,25 @@ void SlamNode::sendTfAndPose(Pose pose, ros::Time stamp)
   poseMsg.pose.orientation = quatMsg;
   m_PoseStampedPublisher.publish(poseMsg);
 
+  // Publish Transform differetn for tiago and lisa
   tf::Transform transform(quatTF, tf::Vector3(pose.x(), pose.y(), 0.0));
-  m_tfBroadcaster.sendTransform(
-      tf::StampedTransform(transform, stamp, "map", "base_link"));
+ // ROS_INFO_STREAM("TF before inverse");
+//  ROS_INFO_STREAM(transform);
+ // ROS_INFO_STREAM("After");
+  
+  if (m_UseBaseFootprint)
+  {
+       tf::Transform transform2 = transform.inverse();
+       // ROS_INFO_STREAM(transform2);
+       m_tfBroadcaster.sendTransform(
+       tf::StampedTransform(transform2, stamp, "base_footprint", "map"));
+  }
+  else 
+  {
+       m_tfBroadcaster.sendTransform(
+       tf::StampedTransform(transform, stamp, "map", "base_link")); 
+  }
+
 }
 
 void SlamNode::sendPoseArray(std::vector<Pose> poses)
